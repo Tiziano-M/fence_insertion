@@ -326,6 +326,9 @@ class BIR_Instruction:
         elif (root == "BStmt_Jmp"):
             jump = instrs.Instruction_JMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             jump.lift(irsb_c, None, None)
+        elif (root == "BStmt_CJmp"):
+            cjump = instrs.Instruction_CJMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            cjump.lift(irsb_c, None, None)
         elif (root == "BStmt_Halt"):
             halt = instrs.Instruction_HALT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             halt.lift(irsb_c, None, None)
@@ -346,6 +349,9 @@ class BIR_Instruction:
                 bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
                 (reg_name, reg_type) = bVar.get_register(block[0])
                 return (reg_name, reg_type)
+        elif (root == "BExp_Cast"):
+            cast = instrs.Instruction_CAST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            cast.lift(irsb_c, None, None)
         elif (root == "BVar"):
             bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
             (reg_name, reg_type) = bVar.get_register(block)
