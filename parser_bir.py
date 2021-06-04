@@ -73,7 +73,7 @@ class Block:
         return final_label_size, final_statements_size, final_last_statement_size        
 
     def get_label(self, label):
-        label = ' '.join(label)
+        label = " ".join(label)
         assert label.count("bb_label")
         assert label.count("BL_Address_HC")
         value = re.search('Imm(.*)w', label).group(1)
@@ -81,7 +81,7 @@ class Block:
         return value
 
     def get_last_statement(self, last_statement):
-        last_statement = ' '.join(last_statement)
+        last_statement = " ".join(last_statement)
         assert last_statement.count("bb_last_statement")
         exps = last_statement.split()
 
@@ -98,30 +98,53 @@ class Block:
             processed_exps.append(exp)
         processed_exps = processed_exps[2:]
         
-        last_statement = "".join(exp for exp in processed_exps)
+        last_statement = " ".join(exp for exp in processed_exps)
         tree_last_statement = Tree.fromstring(last_statement)
         return tree_last_statement
 
     def get_statements(self, statements, show_statements=False):
-        assert statements[0].count("bb_statements")
-        statements = statements[1:]
-        assert statements[0].count("[")
-        statements[0] = statements[0].replace("[", "")
-        assert statements[-1].count("]")
-        statements[-1] = statements[-1].replace("]", "")
-        
+        #print(statements)
+       
+
+        statements = " ".join(statement.strip() for statement in statements)
+
         processed_statements = list()
+        for word in statements.split():
+            if word.startswith("BStmt"):
+                word = "("+word
+            elif word == ("[];"):
+                word = word.replace("[];", "();")
+            elif word.startswith("["):
+                word = word.replace("[", "(")
+            elif word.endswith("];"):
+                word = word.replace("];", ");")
+            elif word.endswith(";"):
+                word = word.replace(";", ");")
+            processed_statements.append(word)
+        #print(processed_statements)
+
+        '''processed_statements = list()
         for statement in statements:
             statement = statement.strip()
             if statement.startswith("BStmt"):
                 statement = "("+statement
             elif statement.endswith(";"):
                 statement = statement.replace(";", ");")
-            processed_statements.append(statement)
+            processed_statements.append(statement)'''
+        
+        '''assert statements[0].count("bb_statements")
+        statements = statements[1:]
+        assert statements[0].count("[")
+        statements[0] = statements[0].replace("[", "(")
+        assert statements[-1].count("]")
+        statements[-1] = statements[-1].replace("]", "")'''
 
+        if processed_statements[0] == "bb_statements" and processed_statements[1] == ":=":
+            processed_statements = processed_statements[2:]
         statements = " ".join(statement for statement in processed_statements)
         statements = statements.split(";")
         statements = list(filter(None, statements))
+        #print(statements)
 
         trees_statements = [Tree.fromstring(statement) for statement in statements]		
         if show_statements:
@@ -133,7 +156,7 @@ class Block:
 
 
 
-'''input = open("examples/bir_program.txt", "r")
+'''input = open("examples/bir_program4.txt", "r")
 bir_program = ParserBIR(input)
 blokcs = bir_program.parse()
 print(blokcs)
