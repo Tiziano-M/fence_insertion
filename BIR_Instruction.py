@@ -322,43 +322,48 @@ class BIR_Instruction:
                 self.map_expressions(block[1], irsb_c)
             else:
                 assign = instrs.Instruction_ASSIGN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-                assign.lift(irsb_c, None, None)
+                assign.compute_result()
         elif (root == "BStmt_Jmp"):
             jump = instrs.Instruction_JMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            jump.lift(irsb_c, None, None)
+            jump.compute_result()
         elif (root == "BStmt_CJmp"):
             cjump = instrs.Instruction_CJMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            cjump.lift(irsb_c, None, None)
+            cjump.compute_result()
         elif (root == "BStmt_Halt"):
             halt = instrs.Instruction_HALT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            halt.lift(irsb_c, None, None)
+            halt.compute_result()
 
     def map_expressions(self, block, irsb_c):
         root = block.label()
         if (root == "BExp_BinExp"):
             binExp = instrs.Instruction_BINEXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            binExp.lift(irsb_c, None, None)
+            val = binExp.compute_result()
+            return val
         elif (root == "BExp_Load"):
             load = instrs.Instruction_LOAD(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            load.lift(irsb_c, None, None)
+            val = load.compute_result()
+            return val
         elif (root == "BExp_Store"):
             store = instrs.Instruction_STORE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            store.lift(irsb_c, None, None)
+            store.compute_result()
         elif (root == "BExp_Den"):
-            if (block[0].label() == "BVar"):
-                bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
-                (reg_name, reg_type) = bVar.get_register(block[0])
-                return (reg_name, reg_type)
+            den = instrs.Instruction_DEN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = den.compute_result()
+            return val
         elif (root == "BExp_Cast"):
             cast = instrs.Instruction_CAST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            cast.lift(irsb_c, None, None)
+            val = cast.compute_result()
+            return val
         elif (root == "BVar"):
             bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
-            (reg_name, reg_type) = bVar.get_register(block)
-            return (reg_name, reg_type)
-        elif ((root == "BExp_Const") or (root == "BL_Address")):
-            (Imm, imm_ty) = block[0][0][:-1], block[0].label()
-            return (Imm, imm_ty)
+            reg_name, reg_type = bVar.get_register(block)
+            return reg_name, reg_type
+        elif (root == "BExp_Const"):
+            Imm, imm_ty = block[0][0][:-1], block[0].label()
+            return int(Imm)
+        elif (root == "BL_Address"):
+            Imm, imm_ty = block[0][0][:-1], block[0].label()
+            return Imm, imm_ty
 
 
 
