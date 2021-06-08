@@ -1,9 +1,0 @@
-BirProgram
-             [<|bb_label :=
-                  BL_Address_HC (Imm64 3489667448w)
-                    "54000061 (b.ne d0001958 <PKCS11_initialize+0x50>  // b.any)";
-                bb_statements := [];
-                bb_last_statement :=
-                  BStmt_CJmp (BExp_Den (BVar "ProcState_Z" BType_Bool))
-                    (BLE_Label (BL_Address (Imm64 3489667452w)))
-                    (BLE_Label (BL_Address (Imm64 3489667460w)))|>]
