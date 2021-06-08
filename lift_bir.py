@@ -1,6 +1,6 @@
 from arch_bir import ArchBIR
 import instrs_bir as instrs
-from parser_bir import ParserBIR
+from parse_bir import ParserBIR
 from BIR_Instruction import BIR_Instruction
 
 from pyvex.lifting import register, Lifter
@@ -15,6 +15,7 @@ import angr
 import pyvex
 from angr.engines import SimEngine, SimSuccessors#, SimEngineVEX, SimEngineProcedure, SimEngineUnicorn
 from angr.engines.vex import HeavyVEXMixin, TrackActionsMixin, SimInspectMixin, HeavyResilienceMixin, SuperFastpathMixin
+from angr.engines.light.engine import SimEngineLightVEXMixin
 
 
 class LifterBIR(Lifter):
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     logging.basicConfig()
 
 
-    bir_input = open("examples/bir_program.txt", "r")
+    bir_input = open("examples/bir_program.bir", "r")
     lifter = LifterBIR(arch=archinfo.arch_from_id('bir'), addr=2)
     bir_program = ParserBIR(bir_input)
     blocks = bir_program.parse()
@@ -67,7 +68,11 @@ if __name__ == '__main__':
         irsb_list.append(lifter.irsb)
 
 
-    test = HeavyVEXMixin(project=None)
-    print(test)
+    #test = SimEngineLightVEXMixin()
+    #print(test)
+
+    
+
+
 
 	
