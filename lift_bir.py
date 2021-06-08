@@ -1,37 +1,24 @@
-from arch_bir import ArchBIR
+import archinfo
 import instrs_bir as instrs
-from parse_bir import ParserBIR
 from BIR_Instruction import BIR_Instruction
 
 from pyvex.lifting import register, Lifter
 from pyvex.lifting.util.vex_helper import *
 from pyvex.errors import LiftingException
-import archinfo
 import logging
 
 l = logging.getLogger(__name__)
 
-import angr
-import pyvex
-from angr.engines import SimEngine, SimSuccessors#, SimEngineVEX, SimEngineProcedure, SimEngineUnicorn
-from angr.engines.vex import HeavyVEXMixin, TrackActionsMixin, SimInspectMixin, HeavyResilienceMixin, SuperFastpathMixin
-from angr.engines.light.engine import SimEngineLightVEXMixin
 
 
 class LifterBIR(Lifter):
-	
+	    
 
-    def parse(self, data):
-        bir_program = ParserBIR(data)
-        blocks = bir_program.parse()
-        return blocks
-    
 
-    def lift(self, disassemble=False, dump_irsb=False):
-        #blocks = self.parse(self.data)
-        #irsb_c = IRSBCustomizer(self.irsb)
-
+    def lift(self, dump_irsb=False):
+            	
         try:
+            block = self.data
             bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
 
             irsb_c = IRSBCustomizer(self.irsb)
@@ -47,32 +34,8 @@ class LifterBIR(Lifter):
         
 
 
+
 register(LifterBIR, 'BIR')
-
-
-
-if __name__ == '__main__':
-    #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    logging.getLogger('pyvex').setLevel(logging.DEBUG)
-    logging.basicConfig()
-
-
-    bir_input = open("examples/bir_program.bir", "r")
-    lifter = LifterBIR(arch=archinfo.arch_from_id('bir'), addr=2)
-    bir_program = ParserBIR(bir_input)
-    blocks = bir_program.parse()
-    irsb_list = list()
-    for block in blocks:
-        lifter._lift(data=block)
-        lifter.irsb.pp()
-        irsb_list.append(lifter.irsb)
-
-
-    #test = SimEngineLightVEXMixin()
-    #print(test)
-
-    
-
 
 
 	
