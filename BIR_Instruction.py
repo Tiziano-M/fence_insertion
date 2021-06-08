@@ -354,6 +354,14 @@ class BIR_Instruction:
             cast = instrs.Instruction_CAST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = cast.compute_result()
             return val
+        elif (root == "BExp_UnaryExp"):
+            unary = instrs.Instruction_UNARY(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = unary.compute_result()
+            return val
+        elif (root == "BExp_BinPred"):
+            binpred = instrs.Instruction_BINPRED(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = binpred.compute_result()
+            return val
         elif (root == "BVar"):
             bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
             reg_name, reg_type = bVar.get_register(block)
@@ -364,6 +372,7 @@ class BIR_Instruction:
         elif (root == "BL_Address"):
             Imm, imm_ty = block[0][0][:-1], block[0].label()
             return Imm, imm_ty
+        
 
 
 
