@@ -10,16 +10,16 @@ class ArchBIR(Arch):
     name = "BIR"
     instruction_alignment = 1
     ip_offset = 0
+    instruction_endness = "Iend_LE"
 
 
     default_symbolic_registers = []
 
     def __init__(self, endness=Endness.LE):
-        # forces little endian
-        super().__init__(Endness.LE)
+        super(ArchBIR, self).__init__(Endness.LE)
 
     register_list = [
-        Register(name="ip", size=8, vex_offset=0),
+        Register(name="ip", size=8, alias_names=('pc'), vex_offset=0),
         Register(name="R0", size=8, vex_offset=8),
         Register(name="R1", size=8, vex_offset=16),
         Register(name="R2", size=8, vex_offset=24),
@@ -32,10 +32,11 @@ class ArchBIR(Arch):
         Register(name="R9", size=8, vex_offset=80),
         Register(name="R10", size=8, vex_offset=88),
         Register(name="SP_EL0", size=8, vex_offset=96),
-        Register(name="ProcState_Z", size=8, vex_offset=104),
-        Register(name="ptr", size=8, vex_offset=112),
-        Register(name="inout", size=1, vex_offset=120),
-        Register(name="ip_at_syscall", size=8, vex_offset=128),
+        Register(name="ProcState_C", size=8, vex_offset=104),
+        Register(name="ProcState_Z", size=8, vex_offset=112),
+        Register(name="ptr", size=8, vex_offset=120),
+        Register(name="inout", size=1, vex_offset=128),
+        Register(name="ip_at_syscall", size=8, vex_offset=136),
     ]
 
 
