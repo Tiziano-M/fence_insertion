@@ -1,0 +1,12 @@
+BirProgram
+             [<|bb_label :=
+                  BL_Address_HC (Imm64 3489667532w)
+                    "7100001F (cmp w0, #0x0)";
+                bb_statements :=
+                  [BStmt_Assign (BVar "ProcState_Z" BType_Bool)
+                     (BExp_BinPred BIExp_Equal
+                        (BExp_Cast BIExp_LowCast
+                           (BExp_Den (BVar "R0" (BType_Imm Bit64))) Bit32)
+                        (BExp_Const (Imm32 0w)))];
+                bb_last_statement :=
+                  BStmt_Jmp (BLE_Label (BL_Address (Imm64 3489667536w)))|>]

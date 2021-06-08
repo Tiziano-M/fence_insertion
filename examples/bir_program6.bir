@@ -1,0 +1,13 @@
+BirProgram
+             [<|bb_label :=
+                  BL_Address_HC (Imm64 3489669316w)
+                    "540000A8 (b.hi d00020d8 <PKCS11_decrypt+0xdc>  // b.pmore)";
+                bb_statements := [];
+                bb_last_statement :=
+                  BStmt_CJmp
+                    (BExp_BinExp BIExp_Or
+                       (BExp_UnaryExp BIExp_Not
+                          (BExp_Den (BVar "ProcState_C" BType_Bool)))
+                       (BExp_Den (BVar "ProcState_Z" BType_Bool)))
+                    (BLE_Label (BL_Address (Imm64 3489669320w)))
+                    (BLE_Label (BL_Address (Imm64 3489669336w)))|>]
