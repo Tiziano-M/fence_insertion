@@ -148,6 +148,53 @@ class Instruction_CAST(BIR_Instruction):
         return val
 
 
+class Instruction_UNARY(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        val = self.map_expressions(self.block[1], self.irsb_c)
+
+        if self.block[0] == "BIExp_ChangeSign":
+            val = val
+        elif self.block[0] == "BIExp_Not":
+            val = ~val
+        elif self.block[0] == "BIExp_CLZ":
+            val = val #exception
+        elif self.block[0] == "BIExp_CLS":
+            val = val
+        return val
+
+
+class Instruction_BINPRED(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        val1 = self.map_expressions(self.block[1], self.irsb_c)
+        val2 = self.map_expressions(self.block[2], self.irsb_c)
+
+        if self.block[0] == "BIExp_Equal":
+            val = val1 == val2
+        elif self.block[0] == "BIExp_NotEqual":
+            val = val1 != val2
+        elif self.block[0] == "BIExp_LessThan":
+            val = val1 < val2
+        elif self.block[0] == "BIExp_SignedLessThan":
+            val = val
+        elif self.block[0] == "BIExp_LessOrEqual":
+            val = val
+        elif self.block[0] == "BIExp_SignedLessOrEqual":
+            val = val
+        return val
+
+
 class Instruction_DEN(BIR_Instruction):
 	
     def __init__(self, arch, addr, block, irsb_c):
