@@ -6,11 +6,17 @@ from nltk.tree import Tree
 class ParserBIR:
 	
     def __init__(self, data):
-    	self.bir_program = data
+        self.bir_program = data
 
     def parse(self):
         list_blocks = list()
-        for line in self.bir_program:
+        #bir_program = "".join(char for char in self.bir_program)
+        #start = bir_program.find("<|")
+        #end = bir_program.find("|>")
+        #print(bir_program[start:end])
+        #new_block = Block(bir_program[start:end])
+        bir_program = self.bir_program.split("\n")
+        for line in bir_program:
             if (line.count("BirProgram")):
                 continue
             elif (line.count("<|")):
@@ -75,9 +81,11 @@ class Block:
     def get_label(self, label):
         label = " ".join(label)
         assert label.count("bb_label")
-        assert label.count("BL_Address_HC")
+        assert label.count("BL_Address")
         value = re.search('Imm(.*)w', label).group(1)
-        value = int(value[3:])
+        value = value.split()[1]
+        value = value.split("w", 1)[0]
+        print(value)
         return value
 
     def get_last_statement(self, last_statement):
@@ -102,7 +110,7 @@ class Block:
         tree_last_statement = Tree.fromstring(last_statement)
         return tree_last_statement
 
-    def get_statements(self, statements, show_statements=False):
+    def get_statements(self, statements, show_statements=True):
         #print(statements)
        
 
@@ -156,13 +164,19 @@ class Block:
 
 
 
-'''input = open("examples/bir_program.bir", "r")
-bir_program = ParserBIR(input)
+############################################
+#################   TEST   #################
+############################################
+input = open("examples/test4.bir", "rb")
+bir_input = input.read() # angr uses the byte form
+bir_input = bir_input.decode("utf-8") 
+print(bir_input)
+bir_program = ParserBIR(bir_input)
 blokcs = bir_program.parse()
 print(blokcs)
 print(blokcs[0].label)
 print(blokcs[0].statements)
-print(blokcs[0].last_statement)'''
+print(blokcs[0].last_statement)
 
 
 
