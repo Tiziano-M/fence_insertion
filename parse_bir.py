@@ -85,8 +85,7 @@ class Block:
         value = re.search('Imm(.*)w', label).group(1)
         value = value.split()[1]
         value = value.split("w", 1)[0]
-        print(value)
-        return value
+        return int(value)
 
     def get_last_statement(self, last_statement):
         last_statement = " ".join(last_statement)
@@ -110,7 +109,7 @@ class Block:
         tree_last_statement = Tree.fromstring(last_statement)
         return tree_last_statement
 
-    def get_statements(self, statements, show_statements=True):
+    def get_statements(self, statements, show_statements=False):
         #print(statements)
        
 
@@ -167,7 +166,7 @@ class Block:
 ############################################
 #################   TEST   #################
 ############################################
-input = open("examples/test4.bir", "rb")
+'''input = open("examples/bir_progam.bir", "rb")
 bir_input = input.read() # angr uses the byte form
 bir_input = bir_input.decode("utf-8") 
 print(bir_input)
@@ -176,7 +175,7 @@ blokcs = bir_program.parse()
 print(blokcs)
 print(blokcs[0].label)
 print(blokcs[0].statements)
-print(blokcs[0].last_statement)
+print(blokcs[0].last_statement)'''
 
 
 
