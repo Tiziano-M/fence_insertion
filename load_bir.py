@@ -14,7 +14,7 @@ class BIR(Blob):
 
     def __init__(self, *args, offset=0, **kwargs):
         """
-        Loader backend for BF programs
+        Loader backend for BIR programs
         :param path: The file path
         :param offset: Skip this many bytes from the beginning of the file.
         """
@@ -27,11 +27,6 @@ class BIR(Blob):
 
     @staticmethod
     def is_compatible(stream):
-        """
-        A BPF file is simply a binary blob. So it is compatible with anything.
-        :param stream:
-        :return:
-        """
         return True
 
 register_backend("bir", BIR)
