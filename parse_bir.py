@@ -83,6 +83,7 @@ class Block:
         assert label.count("bb_label")
         assert label.count("BL_Address")
         value = re.search('Imm(.*)w', label).group(1)
+        value = re.sub(r'[^a-zA-Z0-9\[\]]',' ', value)
         value = value.split()[1]
         value = value.split("w", 1)[0]
         return int(value)
@@ -110,50 +111,32 @@ class Block:
         return tree_last_statement
 
     def get_statements(self, statements, show_statements=False):
-        #print(statements)
-       
+        processed_statements = " ".join(statement.strip() for statement in statements)
 
-        statements = " ".join(statement.strip() for statement in statements)
-
-        processed_statements = list()
-        for word in statements.split():
-            if word.startswith("BStmt"):
-                word = "("+word
-            elif word == ("[];"):
-                word = word.replace("[];", "();")
-            elif word.startswith("["):
-                word = word.replace("[", "(")
-            elif word.endswith("];"):
-                word = word.replace("];", ");")
-            elif word.endswith(";"):
-                word = word.replace(";", ");")
-            processed_statements.append(word)
+        if (processed_statements.count("bir_val_t") or processed_statements.count("bir_stmt_basic_t")):
+            processed_statements = processed_statements.replace(": bir_val_t", "")
+            processed_statements = processed_statements.replace(":bir_val_t", "")
+            processed_statements = processed_statements.replace("bir_stmt_basic_t", "")
+            processed_statements = processed_statements.replace("list", "")
+        processed_statements = processed_statements.split("[")[1]
+        processed_statements = processed_statements.replace("[", "")
+        processed_statements = processed_statements.replace("]", "")
+        processed_statements = processed_statements.split(";")
+        processed_statements = list(filter(None, processed_statements))
+        
+        for i in range(len(processed_statements)):
+            if processed_statements[i].count("(BStmt"):
+                continue
+            elif processed_statements[i].count("BStmt"):
+                processed_statements[i] = processed_statements[i].replace("BStmt", "(BStmt")
+                processed_statements[i] = processed_statements[i]+")"
+            elif processed_statements[i].strip().count(")"):
+                processed_statements[i] = "("+processed_statements[i]
+        if not len(processed_statements):
+            processed_statements.append("()")
         #print(processed_statements)
 
-        '''processed_statements = list()
-        for statement in statements:
-            statement = statement.strip()
-            if statement.startswith("BStmt"):
-                statement = "("+statement
-            elif statement.endswith(";"):
-                statement = statement.replace(";", ");")
-            processed_statements.append(statement)'''
-        
-        '''assert statements[0].count("bb_statements")
-        statements = statements[1:]
-        assert statements[0].count("[")
-        statements[0] = statements[0].replace("[", "(")
-        assert statements[-1].count("]")
-        statements[-1] = statements[-1].replace("]", "")'''
-
-        if processed_statements[0] == "bb_statements" and processed_statements[1] == ":=":
-            processed_statements = processed_statements[2:]
-        statements = " ".join(statement for statement in processed_statements)
-        statements = statements.split(";")
-        statements = list(filter(None, statements))
-        #print(statements)
-
-        trees_statements = [Tree.fromstring(statement) for statement in statements]		
+        trees_statements = [Tree.fromstring(statement) for statement in processed_statements]		
         if show_statements:
             for tree in trees_statements:
                 print(tree)
@@ -166,7 +149,7 @@ class Block:
 ############################################
 #################   TEST   #################
 ############################################
-'''input = open("examples/bir_progam.bir", "rb")
+'''input = open("examples/bir_program.bir", "rb")
 bir_input = input.read() # angr uses the byte form
 bir_input = bir_input.decode("utf-8") 
 print(bir_input)
