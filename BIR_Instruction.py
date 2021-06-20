@@ -3,6 +3,7 @@ import string
 import bitstring
 import logging
 import archinfo
+import re
 
 from pyvex.lifting.util.lifter_helper import ParseError
 from pyvex.lifting.util.syntax_wrapper import VexValue
@@ -14,6 +15,7 @@ import instrs_bir as instrs
 l = logging.getLogger("instr")
 
 
+# This class is based on the Instuction class in pyvex/lifting/util/instr_helper.py
 class BIR_Instruction:
 
     data = None
@@ -55,7 +57,7 @@ class BIR_Instruction:
         """
         self.irsb_c = irsb_c
         # Always call this first!
-        ### self.mark_instruction_start()
+        self.mark_instruction_start()
         # Then do the actual stuff.
         inputs = self.fetch_operands()
         retval = self.compute_result(*inputs)
@@ -318,11 +320,8 @@ class BIR_Instruction:
     def map_statements(self, block, irsb_c):
         root = block.label()
         if (root == "BStmt_Assign"):
-            if block[1].label() == "BExp_Store":
-                self.map_expressions(block[1], irsb_c)
-            else:
-                assign = instrs.Instruction_ASSIGN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-                assign.compute_result()
+            assign = instrs.Instruction_ASSIGN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            assign.compute_result()
         elif (root == "BStmt_Jmp"):
             jump = instrs.Instruction_JMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             jump.compute_result()
@@ -332,6 +331,8 @@ class BIR_Instruction:
         elif (root == "BStmt_Halt"):
             halt = instrs.Instruction_HALT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             halt.compute_result()
+        elif (root == ""):
+            irsb_c.noop()
 
     def map_expressions(self, block, irsb_c):
         root = block.label()
@@ -346,6 +347,7 @@ class BIR_Instruction:
         elif (root == "BExp_Store"):
             store = instrs.Instruction_STORE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             store.compute_result()
+            return None
         elif (root == "BExp_Den"):
             den = instrs.Instruction_DEN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = den.compute_result()
@@ -367,11 +369,18 @@ class BIR_Instruction:
             reg_name, reg_type = bVar.get_register(block)
             return reg_name, reg_type
         elif (root == "BExp_Const"):
-            Imm, imm_ty = block[0][0][:-1], block[0].label()
-            return int(Imm)
+            const = instrs.Instruction_CONST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = const.compute_result()
+            return val
+        elif (root == "BLE_Label"):
+            label = instrs.Instruction_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = label.compute_result()
+            return val
         elif (root == "BL_Address"):
-            Imm, imm_ty = block[0][0][:-1], block[0].label()
-            return Imm, imm_ty
+            address = instrs.Instruction_ADDRESS(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = address.compute_result()
+            return val
+
         
 
 
