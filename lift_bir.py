@@ -21,14 +21,14 @@ class LifterBIR(Lifter):
 
     def get_data(data):
         if LifterBIR.cache_data is None:
-   	        LifterBIR.cache_data = data
+            LifterBIR.cache_data = data
         return LifterBIR.cache_data
 
 
     def parse(self):
         data = "".join(chr(i) for i in LifterBIR.get_data(self.data))
-        print(data)
-        print(self.addr)
+        #print(data)
+        #print(self.addr)
         parser = ParserBIR(data)
         blocks = parser.parse()
         return blocks
@@ -55,14 +55,15 @@ class LifterBIR(Lifter):
                 for statements in block.statements:
                     bir_Instruction.map_statements(statements, irsb_c)
                 bir_Instruction.map_statements(block.last_statement, irsb_c)
-                #if irsb_c.irsb.jumpkind != JumpKind.Exit:
+
+                #if not any(block.label == int(str(irsb_c.irsb.next), 16) for block in blocks):
                 #    self.irsb.jumpkind = JumpKind.Exit
         except:
             print(sys.exc_info()[0])
             raise LiftingException('Could not decode any instructions')
         if dump_irsb:
             self.irsb.pp()
-            print(self.irsb.size)
+            #print(self.irsb.size)
         return self.irsb
         
 
