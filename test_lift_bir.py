@@ -6,7 +6,7 @@ def test1():
     from parse_bir import ParserBIR
     from lift_bir import LifterBIR
 
-    bir_input = open("examples/bir_program.bir", "rb")
+    bir_input = open("examples/test.bir", "rb")
     bir_input = bir_input.read()
     lifter = LifterBIR(arch=archinfo.arch_from_id('bir'), addr=2)
     #bir_program = ParserBIR(bir_input)
@@ -29,8 +29,8 @@ def test2():
 
 
 def main():
-    test1()
-    #test2()
+    #test1()
+    test2()
 
 
 if __name__ == '__main__':

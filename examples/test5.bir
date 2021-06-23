@@ -1,0 +1,10 @@
+`` BirProgram
+      [<|bb_label := BL_Address_HC (Imm64 4w) "F9400149 (ldr x9, [x10])";
+         bb_statements :=
+           [BStmt_Assert
+              (BExp_Aligned Bit64 3 (BExp_Den (BVar "R10" (BType_Imm Bit64))));
+            BStmt_Assign (BVar "R9" (BType_Imm Bit64))
+              (BExp_Load (BExp_Den (BVar "MEM" (BType_Mem Bit64 Bit8)))
+                 (BExp_Den (BVar "R10" (BType_Imm Bit64))) BEnd_LittleEndian
+                 Bit64)];
+         bb_last_statement := BStmt_Halt (BExp_Const (Imm64 8w))|>]``

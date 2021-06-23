@@ -40,15 +40,23 @@ class LifterBIR(Lifter):
             blocks = self.parse()
             bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
 
-            block = next(b for b in blocks if b.label == self.addr)
+            try:
+                block = next(b for b in blocks if b.label == self.addr)
+            except:
+                block=None
 
-            irsb_c = IRSBCustomizer(self.irsb)
-            irsb_c.imark(block.label, 1, 0)
-            for statements in block.statements:
-                bir_Instruction.map_statements(statements, irsb_c)
-            bir_Instruction.map_statements(block.last_statement, irsb_c)
-            #if irsb_c.irsb.jumpkind != JumpKind.Exit:
-            #    self.irsb.jumpkind = JumpKind.Exit
+            if block is None:
+                irsb_c = IRSBCustomizer(self.irsb)
+                irsb_c.imark(self.addr, 1, 0)
+                irsb_c.irsb.jumpkind = JumpKind.Exit
+            else:
+                irsb_c = IRSBCustomizer(self.irsb)
+                irsb_c.imark(block.label, 1, 0)
+                for statements in block.statements:
+                    bir_Instruction.map_statements(statements, irsb_c)
+                bir_Instruction.map_statements(block.last_statement, irsb_c)
+                #if irsb_c.irsb.jumpkind != JumpKind.Exit:
+                #    self.irsb.jumpkind = JumpKind.Exit
         except:
             print(sys.exc_info()[0])
             raise LiftingException('Could not decode any instructions')
