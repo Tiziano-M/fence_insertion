@@ -10,12 +10,8 @@ class ParserBIR:
 
     def parse(self):
         list_blocks = list()
-        #bir_program = "".join(char for char in self.bir_program)
-        #start = bir_program.find("<|")
-        #end = bir_program.find("|>")
-        #print(bir_program[start:end])
-        #new_block = Block(bir_program[start:end])
         bir_program = self.bir_program.split("\n")
+
         for line in bir_program:
             if (line.count("BirProgram")):
                 continue
@@ -36,89 +32,36 @@ class Block:
 
     def __init__(self, data):
         block = self.split_data(data)
-        self.label = self.get_label(block["bb_label"])
-        self.statements = self.get_statements(block["bb_statements"])
-        self.last_statement = self.get_last_statement(block["bb_last_statement"])
-
+        self.label = self.get_label(block[0])
+        self.statements = self.get_statements(block[1])
+        self.last_statement = self.get_last_statement(block[2])
 
     def split_data(self, data):
-        block_dict = {"bb_label" : [], "bb_statements" : [], "bb_last_statement" : []}
-        for line in data:
-            if line.count("bb_label"):
-                key = "bb_label"
-                block_dict[key].append(line)
-            elif line.count("bb_statements"):
-                key = "bb_statements"
-                block_dict[key].append(line)
-            elif line.count("bb_last_statement"):
-                key = "bb_last_statement"
-                block_dict[key].append(line)
-            else:
-                if(key):
-                    block_dict[key].append(line)
-        return block_dict
+        data = " ".join(d.strip() for d in data)
 
-    def get_block_size(self, data):
-        label_size = 0
-        statements_size = 0
-        last_statement_size = 0
-        for line in data:
-            if line.count("bb_label"):
-                label_size = 1
-            elif line.count("bb_statements"):
-                final_label_size = label_size
-                statements_size = 1
-            elif line.count("bb_last_statement"):
-                final_statements_size = statements_size
-                last_statement_size = 1
-            else:
-                label_size += 1
-                statements_size += 1
-                last_statement_size += 1
-        final_last_statement_size = last_statement_size
-        return final_label_size, final_statements_size, final_last_statement_size        
+        label = re.search("bb_label(.*)bb_statements", data).group(1)
+        statements = re.search("bb_statements(.*)bb_last_statement", data).group(1)
+        last_statement = re.search("bb_last_statement(.*)>", data).group(1).replace("|", "")
+
+        values = (label, statements, last_statement)
+        return values    
 
     def get_label(self, label):
-        label = " ".join(label)
-        assert label.count("bb_label")
-        assert label.count("BL_Address")
+        label = label.replace(":=", "").strip()
         value = re.search('Imm(.*)w', label).group(1)
         value = re.sub(r'[^a-zA-Z0-9\[\]]',' ', value)
         value = value.split()[1]
         value = value.split("w", 1)[0]
         return int(value)
 
-    def get_last_statement(self, last_statement):
-        last_statement = " ".join(last_statement)
-        assert last_statement.count("bb_last_statement")
-        exps = last_statement.split()
-
-        processed_exps = list()
-        for exp in exps:
-            if exp.startswith("BStmt"):
-                exp = "("+exp
-            elif exp.count("|>"):
-                idx_remove = exp.index("|>")
-                exp = exp[:idx_remove]
-                exp = exp+")"
-            elif exp.startswith("(Imm"):
-            	exp = exp+" "
-            processed_exps.append(exp)
-        processed_exps = processed_exps[2:]
-        
-        last_statement = " ".join(exp for exp in processed_exps)
-        tree_last_statement = Tree.fromstring(last_statement)
-        return tree_last_statement
-
     def get_statements(self, statements, show_statements=False):
-        processed_statements = " ".join(statement.strip() for statement in statements)
+        processed_statements = statements.replace(":=", "").strip()
 
         if (processed_statements.count("bir_val_t") or processed_statements.count("bir_stmt_basic_t")):
             processed_statements = processed_statements.replace(": bir_val_t", "")
             processed_statements = processed_statements.replace(":bir_val_t", "")
             processed_statements = processed_statements.replace("bir_stmt_basic_t", "")
             processed_statements = processed_statements.replace("list", "")
-        processed_statements = processed_statements.split("[")[1]
         processed_statements = processed_statements.replace("[", "")
         processed_statements = processed_statements.replace("]", "")
         processed_statements = processed_statements.split(";")
@@ -130,8 +73,6 @@ class Block:
             elif processed_statements[i].count("BStmt"):
                 processed_statements[i] = processed_statements[i].replace("BStmt", "(BStmt")
                 processed_statements[i] = processed_statements[i]+")"
-            elif processed_statements[i].strip().count(")"):
-                processed_statements[i] = "("+processed_statements[i]
         if not len(processed_statements):
             processed_statements.append("()")
         #print(processed_statements)
@@ -141,8 +82,20 @@ class Block:
             for tree in trees_statements:
                 print(tree)
                 tree.pretty_print()
-        
         return trees_statements
+
+    def get_last_statement(self, last_statement):
+        processed_last_statement = last_statement.replace(":=", "").strip()
+
+        if processed_last_statement.count("BStmt"):
+            processed_last_statement = processed_last_statement.replace("BStmt", "(BStmt")
+            processed_last_statement = processed_last_statement+")"
+        if processed_last_statement.count("(Imm"):
+        	processed_last_statement = processed_last_statement+" "
+        #print(processed_last_statement)
+
+        tree_last_statement = Tree.fromstring(processed_last_statement)
+        return tree_last_statement
 
 
 
