@@ -82,16 +82,16 @@ class Instruction_BINEXP(BIR_Instruction):
             val = operand1 / operand2
         elif operator == "BIExp_Mod":
             val = operand1 % operand2
-        #elif operator == "BIExp_SignedMod":
-        #    val = operand1 ??? operand2
-        #    val.is_signed = True
+        elif operator == "BIExp_SignedMod":
+            val = operand1 % operand2
+            val.is_signed = True
         elif operator == "BIExp_LeftShift":
             val = operand1 << operand2
         elif operator == "BIExp_RightShift":
             val = operand1 >> operand2
-        #elif operator == "BIExp_SignedRightShift":
-        #    val = operand1 ??? operand2
-        #    val.is_signed = True
+        elif operator == "BIExp_SignedRightShift":
+            val = operand1 >> operand2
+            val.is_signed = True
         return val
  
 
@@ -181,13 +181,13 @@ class Instruction_UNARY(BIR_Instruction):
         val = self.map_expressions(self.block[1], self.irsb_c)
 
         if self.block[0] == "BIExp_ChangeSign":
-            val = val
+            raise Exception("BIExp_ChangeSign found!")
         elif self.block[0] == "BIExp_Not":
             val = ~val
         elif self.block[0] == "BIExp_CLZ":
-            val = val #exception
+            raise Exception("BIExp_CLZ found!")
         elif self.block[0] == "BIExp_CLS":
-            val = val
+            raise Exception("BIExp_CLS found!")
         return val
 
 
@@ -209,11 +209,13 @@ class Instruction_BINPRED(BIR_Instruction):
         elif self.block[0] == "BIExp_LessThan":
             val = val1 < val2
         elif self.block[0] == "BIExp_SignedLessThan":
-            val = val
+            val = val1 < val2
+            val.is_signed = True
         elif self.block[0] == "BIExp_LessOrEqual":
-            val = val
+            val = val1 <= val2
         elif self.block[0] == "BIExp_SignedLessOrEqual":
-            val = val
+            val = val1 <= val2
+            val.is_signed = True
         return val
 
 
