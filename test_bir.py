@@ -7,7 +7,6 @@ def test():
 
     state = proj.factory.entry_state()
     simgr = proj.factory.simulation_manager(state)
-    #simgr._stashes
     simgr.explore()
 
 
@@ -38,15 +37,24 @@ def test_unicorn():
     from angr.engines.unicorn import SimEngineUnicorn
     proj = angr.Project("examples/test.bir", main_opts={'backend': 'bir'}, engine=SimEngineUnicorn)
 
-    #add different code for unicron
-    #state = proj.factory.entry_state()
-    #simgr = proj.factory.simulation_manager(state)
-    #simgr.explore()
+
+def test_simos():
+    import claripy
+    from simos_bir import Observation
+    proj = angr.Project("examples/test3.bir", main_opts={'backend': 'bir'}, simos='BIR')
+    
+    #proj.hook(0x80000180, Observation())
+    state = proj.factory.entry_state()
+    state.regs.R21 = claripy.BVS("R21", 64)
+    simgr = proj.factory.simulation_manager(state)
+    simgr.explore()
+    print(simgr.deadended[0].regs.R13)
+    return simgr
 
 
 
 def main():
-    test()
+    test_simos()
 
 
 if __name__ == '__main__':
