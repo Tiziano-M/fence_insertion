@@ -21,10 +21,7 @@ class Instruction_ASSIGN(BIR_Instruction):
 
     def get_arguments2(self):
         if not isinstance(self.block[1], str):
-            if self.block[1].label() == "BExp_Store":
-                val = self.map_expressions(self.block[1], self.irsb_c)
-            else:
-                val = self.map_expressions(self.block[1], self.irsb_c)
+            val = self.map_expressions(self.block[1], self.irsb_c)
         else:
             if (self.block[1] == "bir_exp_true"):
                 val = self.constant(1, Type.int_8)
