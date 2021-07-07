@@ -2,6 +2,7 @@
 ######## other tests in pyvex/tests/test.py
 #######################################################
 
+import logging
 import archinfo
 import pyvex
 from arch_bir import ArchBIR
@@ -32,14 +33,16 @@ def test2():
     import angr
     import __init__
     proj = angr.Project("examples/test.bir", main_opts={'backend': 'bir'})
-    irsb = proj.factory.block(proj.entry)
+    irsb = proj.factory.block()
     irsb.vex.pp()
     #irsb = proj.factory.block(proj.entry, size = 400).vex
 
 
 
 def main():
-    test1()
+    logging.getLogger('pyvex').setLevel(logging.DEBUG)
+    logging.basicConfig()
+    test2()
     #test_two_irsb()
 
 
