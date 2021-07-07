@@ -42,7 +42,7 @@ class Block:
         label = re.search("bb_label(.*)bb_statements", data).group(1)
         statements = re.search("bb_statements(.*)bb_last_statement", data).group(1)
         last_statement = re.search("bb_last_statement(.*)>", data).group(1).replace("|", "")
-
+        
         values = (label, statements, last_statement)
         return values    
 
@@ -56,14 +56,14 @@ class Block:
 
     def get_statements(self, statements, show_statements=False):
         processed_statements = statements.replace(":=", "").strip()
+        processed_statements = processed_statements[:-2]
 
         if (processed_statements.count("bir_val_t") or processed_statements.count("bir_stmt_basic_t")):
             processed_statements = processed_statements.replace(": bir_val_t", "")
             processed_statements = processed_statements.replace(":bir_val_t", "")
             processed_statements = processed_statements.replace("bir_stmt_basic_t", "")
             processed_statements = processed_statements.replace("list", "")
-        processed_statements = processed_statements.replace("[", "")
-        processed_statements = processed_statements.replace("]", "")
+        processed_statements = processed_statements.replace("[", "", 1)
         processed_statements = processed_statements.split(";")
         processed_statements = list(filter(None, processed_statements))
         
@@ -73,6 +73,10 @@ class Block:
             elif processed_statements[i].count("BStmt"):
                 processed_statements[i] = processed_statements[i].replace("BStmt", "(BStmt")
                 processed_statements[i] = processed_statements[i]+")"
+                if processed_statements[i].count("BStmt_Observe"):
+                    processed_statements[i] = processed_statements[i].replace("[", "(")
+                    processed_statements[i] = processed_statements[i].replace("]", ")")
+
         if not len(processed_statements):
             processed_statements.append("()")
         #print(processed_statements)
