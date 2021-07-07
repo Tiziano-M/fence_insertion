@@ -86,9 +86,9 @@ class Instruction_BINEXP(BIR_Instruction):
             val = operand1 % operand2
             val.is_signed = True
         elif operator == "BIExp_LeftShift":
-            val = operand1 << operand2
+            val = (operand1.cast_to(Type.int_8) << operand2.cast_to(Type.int_8)).cast_to(Type.int_64)
         elif operator == "BIExp_RightShift":
-            val = operand1 >> operand2
+            val = (operand1.cast_to(Type.int_8) >> operand2.cast_to(Type.int_8)).cast_to(Type.int_64)
         elif operator == "BIExp_SignedRightShift":
             val = operand1 >> operand2
             val.is_signed = True
@@ -247,7 +247,8 @@ class Instruction_CONST(BIR_Instruction):
         Imm = self.block[0][0]
         Imm = re.sub(r'[^a-zA-Z0-9\[\]]',' ', str(Imm))
         Imm = Imm.split()[0][:-1]
-        return int(Imm)
+        Imm = int(Imm, 16)
+        return Imm
 
     def get_type(self):
         ty = self.block[0].label()
@@ -255,6 +256,12 @@ class Instruction_CONST(BIR_Instruction):
             ty = Type.int_64
         elif (ty == "Imm32"):
     	    ty = Type.int_32
+        elif (ty == "Imm16"):
+    	    ty = Type.int_16
+        elif (ty == "Imm8"):
+    	    ty = Type.int_8
+        elif (ty == "Imm1"):
+    	    ty = Type.int_1
         return ty
 
     def compute_result(self):
@@ -328,6 +335,21 @@ class Instruction_BVAR(BIR_Instruction):
     	            REGISTER_TYPE = Type.int_8
 
         return (REGISTER_NAME, REGISTER_TYPE)
+
+
+class Instruction_OBSERVE(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        condition = self.map_expressions(self.block[1], self.irsb_c)
+        obs = self.map_expressions(self.block[2], self.irsb_c)
+
+        self.put(obs, 'obs')
+        self.jump(condition, self.constant(0, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):

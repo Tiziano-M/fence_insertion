@@ -61,7 +61,8 @@ class ArchBIR(Arch):
         Register(name="ProcState_N", size=1, vex_offset=291),
         Register(name="ProcState_V", size=1, vex_offset=292),
         Register(name="ProcState_Z", size=1, vex_offset=293),
-        Register(name="ip_at_syscall", size=8, vex_offset=301),
+        Register(name="obs", size=8, vex_offset=301),
+        Register(name="ip_at_syscall", size=8, vex_offset=309)
     ]
 
 
