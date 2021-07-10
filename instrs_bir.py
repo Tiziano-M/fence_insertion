@@ -346,7 +346,7 @@ class Instruction_OBSERVE(BIR_Instruction):
         obs = self.map_expressions(self.block[2], self.irsb_c)
 
         self.put(obs, 'obs')
-        self.jump(condition, self.constant(0, Type.int_64), jumpkind=JumpKind.Syscall)
+        self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):
