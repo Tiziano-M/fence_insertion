@@ -18,7 +18,6 @@ l = logging.getLogger(__name__)
 
 class LifterBIR(Lifter):
     lifter.VEX_IRSB_MAX_SIZE = 10000
-    bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
 
     cache_lifting = None
     cache_blocks = None
@@ -36,7 +35,49 @@ class LifterBIR(Lifter):
             LifterBIR.cache_blocks = LifterBIR.parse(self.data)
         return LifterBIR.cache_blocks
 
+    def split_irsb(self, dict_irsb, addr):
+        """
+        Splits the last IRSB in two blocks if there is a system call (observation).
+
+        :param dict_irsb:   IRSB dictionary.
+        :param addr:        The address of the IRSB block to be split.
+        :returns:           The updated IRSB dictionary.
+        :rtype:             dict
+        """
+        last_irsb = dict_irsb[addr].irsb
+        break_index = None
+        obs_location = 0x700
+
+        for i, stmts in enumerate(last_irsb.statements):
+            if hasattr(stmts, 'jumpkind') and stmts.jumpkind == JumpKind.Syscall:
+                # point where to split the irsb in two
+                break_index = i
+                break
+
+        next_irsb = IRSB.empty_block(self.arch, self.addr)
+        next_irsb_c = IRSBCustomizer(next_irsb)
+        dst = obs_location+1
+
+        for i in range(1, break_index):
+            removed_stmt = last_irsb.statements.pop()
+            next_irsb_c.irsb.statements.insert(i, removed_stmt)
+        next_irsb_c.imark(dst, 1, 0)
+        next_irsb_c.irsb.statements.reverse()            
+        next_irsb_c.irsb.tyenv = last_irsb.tyenv
+        next_irsb_c.irsb.next = last_irsb.next
+        next_irsb_c.irsb.jumpkind = last_irsb.jumpkind
+        
+
+        setattr(last_irsb.statements[-1].dst, "_value", dst)
+        dst_ty = vex_int_class(last_irsb.arch.bits).type
+        last_irsb.next = dict_irsb[addr].mkconst(dst, dst_ty)
+        next_irsb_c.irsb.pp()
+
+        dict_irsb[dst] = next_irsb_c
+        return dict_irsb
+
     def prelift(self, dump_irsb=True):
+        bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
         dict_irsb = {}
 
         try:
@@ -44,13 +85,19 @@ class LifterBIR(Lifter):
 
             for block in blocks:
                 irsb = IRSB.empty_block(self.arch, self.addr)
-                #self.irsb = irsb
-                irsb_c = IRSBCustomizer(irsb)
+                irsb_c = IRSBCustomizer(irsb)             
+                is_syscall = False
+
                 irsb_c.imark(block.label, 1, 0)
                 for statements in block.statements:
-                    LifterBIR.bir_Instruction.map_statements(statements, irsb_c)
-                LifterBIR.bir_Instruction.map_statements(block.last_statement, irsb_c)
+                    bir_Instruction.map_statements(statements, irsb_c)
+                    if irsb_c.irsb.jumpkind == JumpKind.Syscall:
+                        is_syscall = True
+                bir_Instruction.map_statements(block.last_statement, irsb_c)
                 dict_irsb[block.label] = irsb_c
+
+                if is_syscall:
+                    dict_irsb = self.split_irsb(dict_irsb, block.label)
                 if dump_irsb:
                     irsb_c.irsb.pp()
         except:
@@ -62,13 +109,16 @@ class LifterBIR(Lifter):
             LifterBIR.cache_lifting = self.prelift()
         return LifterBIR.cache_lifting
 
+
     def lift(self, dump_irsb=True):
         try:
             irsbs = self.get_irsbs()
 
-            print(self.addr)
             if self.addr in irsbs:
                 self.irsb = irsbs[self.addr].irsb
+            # 2 way to manage the exit
+            #if not any(key == int(str(self.irsb.next), 16) for key in irsbs):
+            #    self.irsb.jumpkind = JumpKind.Exit
             else:
                 irsb_c = IRSBCustomizer(self.irsb)
                 irsb_c.imark(self.addr, 1, 0)
