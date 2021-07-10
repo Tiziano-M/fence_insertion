@@ -10,7 +10,7 @@ class BIR(Blob):
     """
     Representation of a binary blob, i.e. an executable in an unknown file format.
     """
-    is_default = False
+    is_default = True
 
     def __init__(self, *args, offset=0, **kwargs):
         """
@@ -23,7 +23,7 @@ class BIR(Blob):
                 offset=None,
                 entry_point=0,
                 **kwargs)
-        self.os = "bir"
+        self.os = "BIR"
 
     @staticmethod
     def is_compatible(stream):

@@ -41,9 +41,8 @@ def test_unicorn():
 def test_simos():
     import claripy
     from simos_bir import Observation
-    proj = angr.Project("examples/test_obs.bir", main_opts={'backend': 'bir'}, simos='BIR')
+    proj = angr.Project("examples/test_obs.bir")
     
-    #proj.hook(0x80000180, Observation())
     state = proj.factory.entry_state()
     state.regs.R21 = claripy.BVS("R21", 64)
     simgr = proj.factory.simulation_manager(state)
