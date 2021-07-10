@@ -1,5 +1,5 @@
 from angr.simos import SimUserland, register_simos
-from angr.calling_conventions import SimStackArg, SimRegArg, SimCC, register_syscall_cc, register_default_cc
+from angr.calling_conventions import SimStackArg, SimRegArg, SimCC, register_syscall_cc, register_default_cc, SimCCUnknown
 from angr import SimProcedure
 from angr.procedures import SIM_PROCEDURES as P, SIM_LIBRARIES as L
 from angr.procedures.definitions import SimSyscallLibrary
@@ -16,7 +16,8 @@ class Observation(SimProcedure):
     def run(self, obs):
         print("\nObservation:", obs, "\n")
         #self.state.obs_list.append(obs)
-        #self.jump(0x3) 
+
+
 
 
 
@@ -28,14 +29,6 @@ syscall_lib.set_library_names('bir')
 syscall_lib.add_all_from_dict(P['bir'])
 syscall_lib.add_number_mapping_from_dict('BIR', {0 : 'observation'})
 
-
-class SimCCBIR(SimCC):
-    ARG_REGS = ['obs']
-    FP_ARG_REGS = [ ]
-    STACKARG_SP_DIFF = 0
-    RETURN_ADDR = SimRegArg('ip', 8)
-    RETURN_VAL = SimRegArg('obs', 8)
-    ARCH = ArchBIR
 
 
 class SimBIR(SimUserland):
@@ -56,20 +49,22 @@ class SimBIR(SimUserland):
 
 class SimBIRSyscall(SimCC):
     ARG_REGS = ['obs']
-    RETURN_ADDR = SimRegArg('ip', 8)
-    RETURN_VAL = SimRegArg('obs', 8)
+    RETURN_ADDR = SimRegArg('ip_at_syscall', 8)
+    #RETURN_VAL = SimRegArg('obs', 8)
     ARCH = ArchBIR
 
     @staticmethod
     def _match(arch, args, sp_delta):   # pylint: disable=unused-argument
         # doesn't appear anywhere but syscalls
-        return False
+        return True
 
     @staticmethod
     def syscall_num(state):
-        return state.regs.ip_at_syscall
+        # to always match the system call with 0 of 'observation'
+        state.regs.obs = 0
+        return state.regs.obs
 
 
 register_simos('BIR', SimBIR)
-register_syscall_cc('BIR', 'default', SimBIRSyscall)
-register_default_cc('BIR', SimCCBIR)
+register_syscall_cc('BIR', 'BIR', SimBIRSyscall) # if the "second parameter" is set to 'default' you will get some warnings
+register_default_cc('BIR', SimCCUnknown)
