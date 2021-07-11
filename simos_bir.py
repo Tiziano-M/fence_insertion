@@ -56,13 +56,13 @@ class SimBIRSyscall(SimCC):
     @staticmethod
     def _match(arch, args, sp_delta):   # pylint: disable=unused-argument
         # doesn't appear anywhere but syscalls
-        return True
+        return False
 
     @staticmethod
     def syscall_num(state):
         # to always match the system call with 0 of 'observation'
-        state.regs.obs = 0
-        return state.regs.obs
+        state.regs.ip = 0
+        return state.regs.ip
 
 
 register_simos('BIR', SimBIR)

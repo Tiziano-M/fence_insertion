@@ -14,6 +14,7 @@ class IRSBSplitter:
     :rtype:                 dict
     """    
 
+    # default syscall address where lifting starts
     obs_dst = 0x700
     
     def __init__(self, dict_irsb, last_irsb):

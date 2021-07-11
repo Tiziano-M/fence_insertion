@@ -40,7 +40,6 @@ def test_unicorn():
 
 def test_simos():
     import claripy
-    from simos_bir import Observation
     proj = angr.Project("examples/test_obs.bir")
     
     state = proj.factory.entry_state()
