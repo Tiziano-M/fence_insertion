@@ -345,6 +345,8 @@ class Instruction_OBSERVE(BIR_Instruction):
         condition = self.map_expressions(self.block[1], self.irsb_c)
         obs = self.map_expressions(self.block[2], self.irsb_c)
 
+        # to always match the system call with 0 of 'observation'
+        self.put(self.constant(0, Type.int_64), 'syscall_num')
         self.put(obs, 'obs')
         self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
 
