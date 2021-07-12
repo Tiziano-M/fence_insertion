@@ -41,7 +41,7 @@ class IRSBSplitter:
 
     def get_irsb1(self):
         self.last_irsb.irsb.statements = self.last_irsb.irsb.statements[:self.break_index]
-        # change the default address (0x700) to the correct one (obs_dst)
+        # change the default address (0x700) to the updated one (obs_dst)
         setattr(self.last_irsb.irsb.statements[-1].dst, "_value", IRSBSplitter.obs_dst)
         obs_dst_ty = vex_int_class(self.last_irsb.arch.bits).type
         self.last_irsb.irsb.next = self.last_irsb.mkconst(IRSBSplitter.obs_dst, obs_dst_ty)

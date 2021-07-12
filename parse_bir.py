@@ -56,14 +56,16 @@ class Block:
 
     def get_statements(self, statements, show_statements=False):
         processed_statements = statements.replace(":=", "").strip()
+        processed_statements = processed_statements.replace("[", "", 1)
         processed_statements = processed_statements[:-2]
 
+        # this IF includes a provisional changes for non-complete BIR input
         if (processed_statements.count("bir_val_t") or processed_statements.count("bir_stmt_basic_t")):
             processed_statements = processed_statements.replace(": bir_val_t", "")
+            processed_statements = processed_statements.replace("] :bir_val_t", ")")
             processed_statements = processed_statements.replace(":bir_val_t", "")
             processed_statements = processed_statements.replace("bir_stmt_basic_t", "")
             processed_statements = processed_statements.replace("list", "")
-        processed_statements = processed_statements.replace("[", "", 1)
         processed_statements = processed_statements.split(";")
         processed_statements = list(filter(None, processed_statements))
         
