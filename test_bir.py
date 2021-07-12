@@ -1,5 +1,6 @@
 import angr
 import angr_platforms.bir
+import claripy
 
 
 def test():
@@ -19,7 +20,6 @@ def test2():
 
 
 def test3():
-    import claripy
     proj = angr.Project("examples/test3.bir", main_opts={'backend': 'bir'})
 
     state = proj.factory.entry_state()
@@ -39,14 +39,19 @@ def test_unicorn():
 
 
 def test_simos():
-    import claripy
-    proj = angr.Project("examples/test_obs.bir")
+    proj = angr.Project("examples/test_obs5.bir")
     
     state = proj.factory.entry_state()
     state.regs.R21 = claripy.BVS("R21", 64)
+    state.regs.R10 = claripy.BVS("R10", 64)
+    state.regs.R18 = claripy.BVS("R18", 64)
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     print(simgr.deadended[0].regs.R13)
+    #print(simgr.deadended[0].memory.load(0x4000, 8))
+    print(simgr.deadended)
+    print(simgr.deadended[0].globals['obs'])
+    print(simgr.deadended[1].globals['obs'])
     return simgr
 
 
