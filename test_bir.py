@@ -45,13 +45,14 @@ def test_simos():
     state.regs.R21 = claripy.BVS("R21", 64)
     state.regs.R10 = claripy.BVS("R10", 64)
     state.regs.R18 = claripy.BVS("R18", 64)
+    state.regs.R11 = claripy.BVS("R11", 64)
+    state.regs.R19 = claripy.BVS("R19", 64)
+    state.regs.R26 = claripy.BVS("R26", 64)
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
-    print(simgr.deadended[0].regs.R13)
-    #print(simgr.deadended[0].memory.load(0x4000, 8))
     print(simgr.deadended)
-    print(simgr.deadended[0].globals['obs'])
-    print(simgr.deadended[1].globals['obs'])
+    print(simgr.deadended[0].observations.get_list_obs())
+    print(simgr.deadended[1].observations.get_list_obs())
     return simgr
 
 

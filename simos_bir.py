@@ -8,22 +8,18 @@ from arch_bir import ArchBIR
 
 
 
+
 class Observation(SimProcedure):
 
     num_args = 1
     NUM_ARGS = 1
 
-    list_obs = []
 
     def run(self, obs):
         print("\nObservation:", obs, "\n")
-        #self.state.obs_list.append(obs)
+        self.state.observations.append(obs)
+        #print(self.state.observations.get_list_obs())
 
-        #self.state.memory.store(0x4000, obs)
-        #self.state.memory.store(0x4000, self.state.solver.BVV(0x2, 64))
-
-        self.state.globals['obs'] = self.list_obs
-        self.state.globals['obs'].append(obs)
 
 
 
