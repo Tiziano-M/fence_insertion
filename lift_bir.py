@@ -63,6 +63,7 @@ class LifterBIR(Lifter):
                     dict_irsb = splitter.update_dict()
         except:
             raise LiftingException('Could not decode any instructions')
+        print("Pre-Lifting: Done!\n")
         return dict_irsb
 
     def get_irsbs(self):
