@@ -56,9 +56,23 @@ def test_simos():
     return simgr
 
 
+def test_assert():
+    proj = angr.Project("examples/test_assert.bir")
+
+    state = proj.factory.entry_state()
+    state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
+    state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
+    state.regs.R22 = 0
+    #state.regs.R23 = 0
+
+    simgr = proj.factory.simulation_manager(state)
+    simgr.explore()
+    #simgr.move(from_stash='deadended', to_stash='failure', filter_func=lambda s: True if s.addr == 0x400 else False)
+    return simgr
+
 
 def main():
-    test_simos()
+    test_assert()
 
 
 if __name__ == '__main__':

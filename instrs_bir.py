@@ -15,11 +15,11 @@ class Instruction_ASSIGN(BIR_Instruction):
         self.block = block
         self.irsb_c = irsb_c
 
-    def get_arguments1(self):
+    def get_argument1(self):
         REGISTER_NAME, REGISTER_TYPE = self.map_expressions(self.block[0], self.irsb_c)
         return REGISTER_NAME
 
-    def get_arguments2(self):
+    def get_argument2(self):
         if not isinstance(self.block[1], str):
             val = self.map_expressions(self.block[1], self.irsb_c)
         else:
@@ -30,11 +30,30 @@ class Instruction_ASSIGN(BIR_Instruction):
         return val
 
     def compute_result(self):
-        val = self.get_arguments2()
+        val = self.get_argument2()
         if not val:
             return
-        reg = self.get_arguments1()
+        reg = self.get_argument1()
         self.put(val, reg)
+
+
+class Instruction_ASSERT(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def get_argument(self):
+        val = self.map_expressions(self.block[0], self.irsb_c)
+        return val
+
+    def compute_result(self):
+        condition = self.get_argument()
+        to_addr = self.constant(0x400, Type.int_64)
+        negated_condition = self.ite(condition, self.constant(0, condition.ty), self.constant(1, condition.ty))
+
+        self.irsb_c.add_exit(negated_condition, to_addr.rdt, JumpKind.Boring, self.arch.ip_offset)
 
 
 class Instruction_BINEXP(BIR_Instruction):

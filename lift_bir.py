@@ -13,7 +13,14 @@ from IRSBSplitter import *
 import logging
 
 l = logging.getLogger(__name__)
+from angr.errors import *
 
+
+def cleanup_cache_lifting():
+    # Resets the IRSB dictionary in order to execute the lifting of a new program.
+    # There is another static value (obs_dst) in IRSBSplitter,
+    # but there is no need to reset it, as it is updated by one each time it is used.
+    LifterBIR.cache_lifting = None
 
 
 
@@ -21,20 +28,16 @@ class LifterBIR(Lifter):
     lifter.VEX_IRSB_MAX_SIZE = 10000
 
     cache_lifting = None
-    cache_blocks = None
 
 
-    def parse(data):
-        data = "".join(chr(i) for i in data)
+    def get_blocks(self):
+        # Returns the list of BIR blocks taken as input self.data (the BIR program)
+        # self.data: the bytes to lift as either a python string of bytes
+        data = "".join(chr(i) for i in self.data)
         #print(data)
         parser = ParserBIR(data)
         blocks = parser.parse()
         return blocks
-    
-    def get_blocks(self):
-        if LifterBIR.cache_blocks is None:
-            LifterBIR.cache_blocks = LifterBIR.parse(self.data)
-        return LifterBIR.cache_blocks
 
     def prelift(self, dump_irsb=True):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
@@ -46,11 +49,12 @@ class LifterBIR(Lifter):
             for block in blocks:
                 irsb = IRSB.empty_block(self.arch, self.addr)
                 irsb_c = IRSBCustomizer(irsb)             
-                is_syscall = False
-
                 irsb_c.imark(block.label, 1, 0)
+
+                is_syscall = False           
                 for statements in block.statements:
                     bir_Instruction.map_statements(statements, irsb_c)
+                    # this check is used to find blocks with Observe statement
                     if irsb_c.irsb.jumpkind == JumpKind.Syscall:
                         is_syscall = True
                 bir_Instruction.map_statements(block.last_statement, irsb_c)
@@ -67,6 +71,7 @@ class LifterBIR(Lifter):
         return dict_irsb
 
     def get_irsbs(self):
+        # Builds a IRSB dictionary to use it in the 'lift' function and already have all the irsb blocks translated
         if LifterBIR.cache_lifting is None:
             LifterBIR.cache_lifting = self.prelift()
         return LifterBIR.cache_lifting
@@ -75,12 +80,14 @@ class LifterBIR(Lifter):
         try:
             irsbs = self.get_irsbs()
 
-            print(self.addr)
+            #print(self.addr)
             if self.addr in irsbs:
                 self.irsb = irsbs[self.addr].irsb
             # 2 way to manage the exit
             #if not any(key == int(str(self.irsb.next), 16) for key in irsbs):
             #    self.irsb.jumpkind = JumpKind.Exit
+            elif self.addr == 0x400:
+                self.irsb.jumpkind = JumpKind.NoDecode
             else:
                 irsb_c = IRSBCustomizer(self.irsb)
                 irsb_c.imark(self.addr, 1, 0)
@@ -98,5 +105,3 @@ class LifterBIR(Lifter):
 
 register(LifterBIR, 'BIR')
 
-
-	

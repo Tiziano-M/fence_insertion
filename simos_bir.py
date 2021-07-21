@@ -14,12 +14,10 @@ class Observation(SimProcedure):
     num_args = 1
     NUM_ARGS = 1
 
-
     def run(self, obs):
         print("\nObservation:", obs, "\n")
         self.state.observations.append(obs)
         #print(self.state.observations.get_list_obs())
-
 
 
 

@@ -322,6 +322,9 @@ class BIR_Instruction:
         if (root == "BStmt_Assign"):
             assign = instrs.Instruction_ASSIGN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             assign.compute_result()
+        elif (root == "BStmt_Assert"):
+            _assert = instrs.Instruction_ASSERT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            _assert.compute_result()
         elif (root == "BStmt_Observe"):
             observe = instrs.Instruction_OBSERVE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             observe.compute_result()
