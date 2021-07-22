@@ -8,6 +8,7 @@ from lift_bir import cleanup_cache_lifting
 
 parser = argparse.ArgumentParser()
 parser.add_argument("project", help="project path name", type=str)
+parser.add_argument("-ba", "--base_addr", help="The address to place the data in memory (default 0)", default=0, type=int)
 args = parser.parse_args()
 
 
@@ -66,9 +67,9 @@ def cleanup_current_vex():
 
 
 def print_results(final_states):
+    print("\n\n")
+    print(f"RESULTS: {len(final_states)} final states")
     for state in final_states:
-        print("\n\n")
-        print(f"RESULTS: {len(final_states)} final states")
         print("="*80)
         print("STATE:", state)
         # is a listing of the basic block addresses executed by the state.
@@ -81,13 +82,12 @@ def print_results(final_states):
         print("\t- Guards:", list_guards)
         print("\t- Observations:", list_obs)
         print("="*80)
-        print()
 
 
 def main():
-    proj = angr.Project(args.project)
+    proj = angr.Project(args.project, main_opts={'base_addr': args.base_addr})
 
-    state = proj.factory.entry_state()
+    state = proj.factory.entry_state(addr=args.base_addr)
     init_regs(state)
     add_state_options(state)
 
