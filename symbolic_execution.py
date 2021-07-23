@@ -7,7 +7,7 @@ from lift_bir import cleanup_cache_lifting
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("project", help="project path name", type=str)
+parser.add_argument("program", help="BIR program path name", type=str)
 parser.add_argument("-ba", "--base_addr", help="The address to place the data in memory (default 0)", default=0, type=int)
 args = parser.parse_args()
 
@@ -78,14 +78,14 @@ def print_results(final_states):
         list_addrs = list(map(lambda value: hex(value), list_addrs))
         list_guards = state.history.jump_guards.hardcopy
         list_obs = state.observations.get_list_obs()
-        print("\t- Path:", list_addrs)
-        print("\t- Guards:", list_guards)
-        print("\t- Observations:", list_obs)
+        print("\t- Path:\t\t", list_addrs)
+        print("\t- Guards:\t", list_guards)
+        print("\t- Observations:\t", list_obs)
         print("="*80)
 
 
 def main():
-    proj = angr.Project(args.project, main_opts={'base_addr': args.base_addr})
+    proj = angr.Project(args.program, main_opts={'base_addr': args.base_addr})
 
     state = proj.factory.entry_state(addr=args.base_addr)
     init_regs(state)
