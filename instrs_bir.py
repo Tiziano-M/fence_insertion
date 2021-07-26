@@ -102,11 +102,11 @@ class Instruction_BINEXP(BIR_Instruction):
             val = operand1 % operand2
             val.is_signed = True
         elif operator == "BIExp_LeftShift":
-            val = (operand1.cast_to(Type.int_8) << operand2.cast_to(Type.int_8)).cast_to(Type.int_64)
+            val = operand1 << operand2.cast_to(Type.int_8)
         elif operator == "BIExp_RightShift":
-            val = (operand1.cast_to(Type.int_8) >> operand2.cast_to(Type.int_8)).cast_to(Type.int_64)
+            val = operand1 >> operand2.cast_to(Type.int_8)
         elif operator == "BIExp_SignedRightShift":
-            val = operand1 >> operand2
+            val = operand1 >> operand2.cast_to(Type.int_8)
             val.is_signed = True
         return val
  

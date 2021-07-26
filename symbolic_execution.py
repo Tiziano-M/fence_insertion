@@ -50,11 +50,11 @@ def init_regs(state):
     state.regs.SP_EL1 = claripy.BVS("SP_EL1", 64)
     state.regs.SP_EL2 = claripy.BVS("SP_EL2", 64)
     state.regs.SP_EL3 = claripy.BVS("SP_EL3", 64)
-    state.regs.ProcState_C = claripy.BVS("ProcState_C", 1)
-    state.regs.ProcState_E = claripy.BVS("ProcState_E", 1)
-    state.regs.ProcState_N = claripy.BVS("ProcState_N", 1)
-    state.regs.ProcState_V = claripy.BVS("ProcState_V", 1)
-    state.regs.ProcState_Z = claripy.BVS("ProcState_Z", 1)
+    state.regs.ProcState_C = claripy.BVS("ProcState_C", 8)
+    state.regs.ProcState_E = claripy.BVS("ProcState_E", 8)
+    state.regs.ProcState_N = claripy.BVS("ProcState_N", 8)
+    state.regs.ProcState_V = claripy.BVS("ProcState_V", 8)
+    state.regs.ProcState_Z = claripy.BVS("ProcState_Z", 8)
         
 
 def add_state_options(state):
