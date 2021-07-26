@@ -62,10 +62,6 @@ def add_state_options(state):
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
 
 
-def cleanup_current_vex():
-    cleanup_cache_lifting()
-
-
 def print_results(final_states):
     print("\n\n")
     print(f"RESULTS: {len(final_states)} final states")
@@ -85,18 +81,18 @@ def print_results(final_states):
 
 
 def main():
+    # initializes the angr project
     proj = angr.Project(args.program, main_opts={'base_addr': args.base_addr})
 
+    # sets the initial state and registers
     state = proj.factory.entry_state(addr=args.base_addr)
     init_regs(state)
     add_state_options(state)
 
+    # executes the symbolic execution and prints the results
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     print_results(simgr.deadended)
-
-    #cleanup_current_vex()
-    return simgr
 
 
 
