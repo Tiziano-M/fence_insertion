@@ -16,17 +16,11 @@ class Instruction_ASSIGN(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_argument1(self):
-        REGISTER_NAME, REGISTER_TYPE = self.map_expressions(self.block[0], self.irsb_c)
+        REGISTER_NAME = self.block["var"]["name"]
         return REGISTER_NAME
 
     def get_argument2(self):
-        if not isinstance(self.block[1], str):
-            val = self.map_expressions(self.block[1], self.irsb_c)
-        else:
-            if (self.block[1] == "bir_exp_true"):
-                val = self.constant(1, Type.int_8)
-            elif (self.block[1] == "bir_exp_false"):
-                val = self.constant(0, Type.int_8)
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
         return val
 
     def compute_result(self):
@@ -45,7 +39,7 @@ class Instruction_ASSERT(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_argument(self):
-        val = self.map_expressions(self.block[0], self.irsb_c)
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
         return val
 
     def compute_result(self):
@@ -64,15 +58,15 @@ class Instruction_BINEXP(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_operator(self):
-        operator = self.block[0]
+        operator = self.block["type"]
         return operator
 
     def get_operand1(self):
-        val = self.map_expressions(self.block[1], self.irsb_c)
+        val = self.map_expressions(self.block["exp1"], self.irsb_c)
         return val
 
     def get_operand2(self):
-        val = self.map_expressions(self.block[2], self.irsb_c)
+        val = self.map_expressions(self.block["exp2"], self.irsb_c)
         return val
         
     def compute_result(self):
@@ -119,7 +113,7 @@ class Instruction_LOAD(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_register_type(self):
-        REGISTER_TYPE_LOAD = self.block[3]
+        REGISTER_TYPE_LOAD = self.block["sz"]
         if (REGISTER_TYPE_LOAD == "Bit64"):
     	    REGISTER_TYPE_LOAD = Type.int_64
         elif (REGISTER_TYPE_LOAD == "Bit32"):
@@ -132,7 +126,7 @@ class Instruction_LOAD(BIR_Instruction):
 
     def compute_result(self):
         REGISTER_TYPE_LOAD = self.get_register_type()
-        addr_val = self.map_expressions(self.block[1], self.irsb_c)
+        addr_val = self.map_expressions(self.block["addr"], self.irsb_c)
 
         val = self.load(addr_val, REGISTER_TYPE_LOAD)
         return val
@@ -146,8 +140,8 @@ class Instruction_STORE(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        addr_val = self.map_expressions(self.block[1], self.irsb_c)
-        val = self.map_expressions(self.block[3], self.irsb_c)
+        addr_val = self.map_expressions(self.block["addr"], self.irsb_c)
+        val = self.map_expressions(self.block["val"], self.irsb_c)
 
         self.store(val, addr_val)
 
@@ -160,28 +154,28 @@ class Instruction_CAST(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_type(self):
-        ty_cast = self.block[2]
-        if (ty_cast == "Bit64"):
+        ty_cast = self.block["sz"]
+        if (ty_cast == "64"):
     	    ty_cast = Type.int_64
-        elif (ty_cast == "Bit32"):
+        elif (ty_cast == "32"):
     	    ty_cast = Type.int_32
-        elif (ty_cast == "Bit16"):
+        elif (ty_cast == "16"):
     	    ty_cast = Type.int_16
-        elif (ty_cast == "Bit8"):
+        elif (ty_cast == "8"):
     	    ty_cast = Type.int_8
         return ty_cast
 
     def compute_result(self):
-        val = self.map_expressions(self.block[1], self.irsb_c)
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
         ty = self.get_type()
         
-        if self.block[0] == "BIExp_UnsignedCast":
+        if self.block["type"] == "BIExp_UnsignedCast":
             val = val.cast_to(ty, signed=False)
-        elif self.block[0] == "BIExp_SignedCast":
+        elif self.block["type"] == "BIExp_SignedCast":
             val = val.cast_to(ty, signed=True)
-        elif self.block[0] == "BIExp_HighCast":
+        elif self.block["type"] == "BIExp_HighCast":
             val = val.cast_to(ty, high=True)
-        elif self.block[0] == "BIExp_LowCast":
+        elif self.block["type"] == "BIExp_LowCast":
             val = val.cast_to(ty, high=False)
         return val
 
@@ -194,15 +188,15 @@ class Instruction_UNARY(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block[1], self.irsb_c)
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
 
-        if self.block[0] == "BIExp_ChangeSign":
+        if self.block["type"] == "BIExp_ChangeSign":
             raise Exception("BIExp_ChangeSign found!")
-        elif self.block[0] == "BIExp_Not":
+        elif self.block["type"] == "BIExp_Not":
             val = ~val
-        elif self.block[0] == "BIExp_CLZ":
+        elif self.block["type"] == "BIExp_CLZ":
             raise Exception("BIExp_CLZ found!")
-        elif self.block[0] == "BIExp_CLS":
+        elif self.block["type"] == "BIExp_CLS":
             raise Exception("BIExp_CLS found!")
         return val
 
@@ -215,21 +209,21 @@ class Instruction_BINPRED(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val1 = self.map_expressions(self.block[1], self.irsb_c)
-        val2 = self.map_expressions(self.block[2], self.irsb_c)
+        val1 = self.map_expressions(self.block["exp1"], self.irsb_c)
+        val2 = self.map_expressions(self.block["exp2"], self.irsb_c)
 
-        if self.block[0] == "BIExp_Equal":
+        if self.block["type"] == "BIExp_Equal":
             val = val1 == val2
-        elif self.block[0] == "BIExp_NotEqual":
+        elif self.block["type"] == "BIExp_NotEqual":
             val = val1 != val2
-        elif self.block[0] == "BIExp_LessThan":
+        elif self.block["type"] == "BIExp_LessThan":
             val = val1 < val2
-        elif self.block[0] == "BIExp_SignedLessThan":
+        elif self.block["type"] == "BIExp_SignedLessThan":
             val = val1 < val2
             val.is_signed = True
-        elif self.block[0] == "BIExp_LessOrEqual":
+        elif self.block["type"] == "BIExp_LessOrEqual":
             val = val1 <= val2
-        elif self.block[0] == "BIExp_SignedLessOrEqual":
+        elif self.block["type"] == "BIExp_SignedLessOrEqual":
             val = val1 <= val2
             val.is_signed = True
         return val
@@ -242,12 +236,23 @@ class Instruction_DEN(BIR_Instruction):
         self.block = block
         self.irsb_c = irsb_c
 
-    def get_register(self):
-        REGISTER_NAME, REGISTER_TYPE = self.map_expressions(self.block[0], self.irsb_c)
-        return REGISTER_NAME, REGISTER_TYPE
+    def get_register(self, block):
+        REGISTER_NAME = block["name"]
+        REGISTER_TYPE = block["type"]     
+        if (REGISTER_TYPE == "imm64"):
+            REGISTER_TYPE = Type.int_64
+        elif (REGISTER_TYPE == "imm32"):
+            REGISTER_TYPE = Type.int_32
+        elif (REGISTER_TYPE == "imm16"):
+            REGISTER_TYPE = Type.int_16
+        elif (REGISTER_TYPE == "imm8"):
+            REGISTER_TYPE = Type.int_8
+        elif (REGISTER_TYPE == "imm1"):
+            REGISTER_TYPE = Type.int_1
+        return (REGISTER_NAME, REGISTER_TYPE)
 
     def compute_result(self):
-        reg, ty = self.get_register()
+        reg, ty = self.get_register(self.block["var"])
         val = self.get(reg, ty)
         return val
 
@@ -260,23 +265,21 @@ class Instruction_CONST(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_value(self):
-        Imm = self.block[0][0]
-        Imm = re.sub(r'[^a-zA-Z0-9\[\]]',' ', str(Imm))
-        Imm = Imm.split()[0][:-1]
-        Imm = int(Imm, 16)
+        Imm = self.block["val"]
+        Imm = int(Imm)
         return Imm
 
     def get_type(self):
-        ty = self.block[0].label()
-        if (ty == "Imm64"):
+        ty = self.block["sz"]
+        if (ty == "64"):
             ty = Type.int_64
-        elif (ty == "Imm32"):
+        elif (ty == "32"):
     	    ty = Type.int_32
-        elif (ty == "Imm16"):
+        elif (ty == "16"):
     	    ty = Type.int_16
-        elif (ty == "Imm8"):
+        elif (ty == "8"):
     	    ty = Type.int_8
-        elif (ty == "Imm1"):
+        elif (ty == "1"):
     	    ty = Type.int_1
         return ty
 
@@ -295,7 +298,7 @@ class Instruction_LABEL(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block[0], self.irsb_c)
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
         return val
 
 
@@ -307,21 +310,22 @@ class Instruction_ADDRESS(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_addr(self):
-        addr = self.block[0][0]
-        addr = re.sub(r'[^a-zA-Z0-9\[\]]',' ', str(addr))
-        addr = addr.split()[0][:-1]
-        return int(addr)
+        addr = self.block["val"]
+        addr = int(addr)
+        return addr
 
     def get_type(self):
-        ty = self.block[0].label()
-        if (ty == "Imm64"):
+        ty = self.block["sz"]
+        if (ty == "64"):
             ty = Type.int_64
-        elif (ty == "Imm32"):
+        elif (ty == "32"):
     	    ty = Type.int_32
-        elif (ty == "Imm16"):
+        elif (ty == "16"):
     	    ty = Type.int_16
-        elif (ty == "Imm8"):
+        elif (ty == "8"):
     	    ty = Type.int_8
+        elif (ty == "1"):
+    	    ty = Type.int_1
         return ty
 
     def compute_result(self):
@@ -329,28 +333,6 @@ class Instruction_ADDRESS(BIR_Instruction):
         ty = self.get_type()
         val = self.constant(addr, ty)
         return val
-
-
-class Instruction_BVAR(BIR_Instruction):
-    
-    def get_register(self, block):
-        REGISTER_NAME = block[0].strip('"')
-        if isinstance(block[1], str):
-            if block[1] == "BType_Bool":
-                REGISTER_TYPE = Type.int_8
-        else:
-            if block[1].label() == "BType_Imm":
-                REGISTER_TYPE = block[1][0]        
-                if (REGISTER_TYPE == "Bit64"):
-    	            REGISTER_TYPE = Type.int_64
-                elif (REGISTER_TYPE == "Bit32"):
-    	            REGISTER_TYPE = Type.int_32
-                elif (REGISTER_TYPE == "Bit16"):
-    	            REGISTER_TYPE = Type.int_16
-                elif (REGISTER_TYPE == "Bit8"):
-    	            REGISTER_TYPE = Type.int_8
-
-        return (REGISTER_NAME, REGISTER_TYPE)
 
 
 class Instruction_OBSERVE(BIR_Instruction):
@@ -361,8 +343,9 @@ class Instruction_OBSERVE(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        condition = self.map_expressions(self.block[1], self.irsb_c)
-        obs = self.map_expressions(self.block[2], self.irsb_c)
+        condition = self.map_expressions(self.block["cnd"], self.irsb_c)
+        # Now we get only one observation
+        obs = self.map_expressions(self.block["obss"][0], self.irsb_c)
 
         # to always match the system call with 0 of 'observation'
         self.put(self.constant(0, Type.int_64), 'syscall_num')
@@ -378,7 +361,7 @@ class Instruction_JMP(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block[0], self.irsb_c)
+        val = self.map_expressions(self.block["lbl"], self.irsb_c)
         self.jump(None, val)
 
 
@@ -390,9 +373,9 @@ class Instruction_CJMP(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        condition = self.map_expressions(self.block[0], self.irsb_c)
-        val1 = self.map_expressions(self.block[1], self.irsb_c)
-        val2 = self.map_expressions(self.block[2], self.irsb_c)
+        condition = self.map_expressions(self.block["cnd"], self.irsb_c)
+        val1 = self.map_expressions(self.block["lblt"], self.irsb_c)
+        val2 = self.map_expressions(self.block["lblf"], self.irsb_c)
 
         self.addr = int(str(val1.rdt), 16)
         self.jump(condition, val2)
@@ -406,7 +389,7 @@ class Instruction_HALT(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block[0], self.irsb_c) #Const
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
         self.jump(None, val, jumpkind=JumpKind.Exit)
 
 

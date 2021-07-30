@@ -318,71 +318,70 @@ class BIR_Instruction:
         return VexValue(self.irsb_c, cc)
 
     def map_statements(self, block, irsb_c):
-        root = block.label()
-        if (root == "BStmt_Assign"):
+        stmttype = block["stmttype"]
+        if (stmttype == "BStmt_Assign"):
             assign = instrs.Instruction_ASSIGN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             assign.compute_result()
-        elif (root == "BStmt_Assert"):
+        elif (stmttype == "BStmt_Assert"):
             _assert = instrs.Instruction_ASSERT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             _assert.compute_result()
-        elif (root == "BStmt_Observe"):
+        elif (stmttype == "BStmt_Observe"):
             observe = instrs.Instruction_OBSERVE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             observe.compute_result()
-        elif (root == "BStmt_Jmp"):
-            jump = instrs.Instruction_JMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            jump.compute_result()
-        elif (root == "BStmt_CJmp"):
-            cjump = instrs.Instruction_CJMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            cjump.compute_result()
-        elif (root == "BStmt_Halt"):
-            halt = instrs.Instruction_HALT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            halt.compute_result()
-        elif (root == ""):
+        elif (stmttype == None):
             irsb_c.noop()
 
+    def map_last_statement(self, block, irsb_c):
+        estmttype = block["estmttype"]
+        if (estmttype == "BStmt_Jmp"):
+            jump = instrs.Instruction_JMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            jump.compute_result()
+        elif (estmttype == "BStmt_CJmp"):
+            cjump = instrs.Instruction_CJMP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            cjump.compute_result()
+        elif (estmttype == "BStmt_Halt"):
+            halt = instrs.Instruction_HALT(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            halt.compute_result()
+
     def map_expressions(self, block, irsb_c):
-        root = block.label()
-        if (root == "BExp_BinExp"):
+        exptype = block["exptype"]
+        if (exptype == "BExp_BinExp"):
             binExp = instrs.Instruction_BINEXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = binExp.compute_result()
             return val
-        elif (root == "BExp_Load"):
+        elif (exptype == "BExp_Load"):
             load = instrs.Instruction_LOAD(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = load.compute_result()
             return val
-        elif (root == "BExp_Store"):
+        elif (exptype == "BExp_Store"):
             store = instrs.Instruction_STORE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             store.compute_result()
             return None
-        elif (root == "BExp_Den"):
+        elif (exptype == "BExp_Den"):
             den = instrs.Instruction_DEN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = den.compute_result()
             return val
-        elif (root == "BExp_Cast"):
+        elif (exptype == "BExp_Cast"):
             cast = instrs.Instruction_CAST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = cast.compute_result()
             return val
-        elif (root == "BExp_UnaryExp"):
+        elif (exptype == "BExp_UnaryExp"):
             unary = instrs.Instruction_UNARY(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = unary.compute_result()
             return val
-        elif (root == "BExp_BinPred"):
+        elif (exptype == "BExp_BinPred"):
             binpred = instrs.Instruction_BINPRED(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = binpred.compute_result()
             return val
-        elif (root == "BVar"):
-            bVar = instrs.Instruction_BVAR(arch=archinfo.arch_from_id('bir'), addr=0)
-            reg_name, reg_type = bVar.get_register(block)
-            return reg_name, reg_type
-        elif (root == "BExp_Const"):
+        elif (exptype == "BExp_Const"):
             const = instrs.Instruction_CONST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = const.compute_result()
             return val
-        elif (root == "BLE_Label"):
+        elif (exptype == "BLE_Label"):
             label = instrs.Instruction_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = label.compute_result()
             return val
-        elif (root == "BL_Address"):
+        elif (exptype == "BL_Address"):
             address = instrs.Instruction_ADDRESS(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = address.compute_result()
             return val

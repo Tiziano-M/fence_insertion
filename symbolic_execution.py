@@ -1,7 +1,7 @@
 import argparse
 
 import angr
-import angr_platforms.bir
+import __init__
 import claripy
 from lift_bir import cleanup_cache_lifting
 
@@ -64,7 +64,7 @@ def add_state_options(state):
 
 def print_results(final_states):
     print("\n\n")
-    print(f"RESULTS: {len(final_states)} final states")
+    print(f"RESULT: {len(final_states)} final states")
     for state in final_states:
         print("="*80)
         print("STATE:", state)

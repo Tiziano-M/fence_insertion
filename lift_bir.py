@@ -33,9 +33,9 @@ class LifterBIR(Lifter):
     def get_blocks(self):
         # Returns the list of BIR blocks taken as input self.data (the BIR program)
         # self.data: the bytes to lift as either a python string of bytes
-        data = "".join(chr(i) for i in self.data)
+        #data = "".join(chr(i) for i in self.data)
         #print(data)
-        parser = ParserBIR(data)
+        parser = ParserBIR()
         blocks = parser.parse()
         return blocks
 
@@ -57,7 +57,7 @@ class LifterBIR(Lifter):
                     # this check is used to find blocks with Observe statement
                     if irsb_c.irsb.jumpkind == JumpKind.Syscall:
                         is_syscall = True
-                bir_Instruction.map_statements(block.last_statement, irsb_c)
+                bir_Instruction.map_last_statement(block.last_statement, irsb_c)
                 dict_irsb[block.label] = irsb_c
 
                 if dump_irsb:
