@@ -381,6 +381,10 @@ class BIR_Instruction:
             label = instrs.Instruction_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = label.compute_result()
             return val
+        elif (exptype == "BLE_Exp"):
+            ble_exp = instrs.Instruction_BLE_EXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = ble_exp.compute_result()
+            return val
         elif (exptype == "BL_Address"):
             address = instrs.Instruction_ADDRESS(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = address.compute_result()

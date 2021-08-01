@@ -1,7 +1,5 @@
 import sys
 import json
-import re
-from nltk.tree import Tree
 
 
 class ParserBIR:

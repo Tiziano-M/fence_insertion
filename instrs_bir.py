@@ -1,4 +1,3 @@
-import re
 from pyvex.lifting.util import Type, JumpKind
 from BIR_Instruction import BIR_Instruction
 import logging
@@ -291,6 +290,18 @@ class Instruction_CONST(BIR_Instruction):
 
 
 class Instruction_LABEL(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        val = self.map_expressions(self.block["exp"], self.irsb_c)
+        return val
+
+
+class Instruction_BLE_EXP(BIR_Instruction):
 	
     def __init__(self, arch, addr, block, irsb_c):
         super().__init__(arch, addr)
