@@ -25,6 +25,7 @@ def cleanup_cache_lifting():
 
 
 class LifterBIR(Lifter):
+    REQUIRE_DATA_PY = True
     lifter.VEX_IRSB_MAX_SIZE = 10000
 
     cache_lifting = None
