@@ -1,19 +1,20 @@
-import sys
 import json
 
 
 class ParserBIR:
-	
-    #def __init__(self, data):
-    #    self.bir_program = data
+    """
+    Returns the list of BIR blocks taken as input self.data (the BIR program) in the lifter
 
-    def get_birprog_from_json(self):
-        with open(sys.argv[1], "r") as json_file:
-            birprog = json.load(json_file)
-        return birprog
+    :param data:       The bytes to lift as either a python string of bytes.
+    :returns:          The list of BIR blocks.
+    :rtype:            list
+    """
 
-    def parse(self):
-        bir_program = self.get_birprog_from_json()
+    def parse(data):
+        data = "".join(chr(i) for i in data)
+        bad_chr = data.rfind("\n")
+        bir_program_json = data[:bad_chr]
+        bir_program = json.loads(bir_program_json)
         
         list_blocks = list()        
         for block in bir_program:

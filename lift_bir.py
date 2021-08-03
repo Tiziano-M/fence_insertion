@@ -13,7 +13,7 @@ from IRSBSplitter import *
 import logging
 
 l = logging.getLogger(__name__)
-from angr.errors import *
+
 
 
 def cleanup_cache_lifting():
@@ -26,26 +26,17 @@ def cleanup_cache_lifting():
 
 class LifterBIR(Lifter):
     REQUIRE_DATA_PY = True
-    lifter.VEX_IRSB_MAX_SIZE = 10000
+    lifter.VEX_IRSB_MAX_SIZE = 2000000
 
     cache_lifting = None
 
-
-    def get_blocks(self):
-        # Returns the list of BIR blocks taken as input self.data (the BIR program)
-        # self.data: the bytes to lift as either a python string of bytes
-        #data = "".join(chr(i) for i in self.data)
-        #print(data)
-        parser = ParserBIR()
-        blocks = parser.parse()
-        return blocks
 
     def prelift(self, dump_irsb=True):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
         dict_irsb = {}
 
         try:
-            blocks = self.get_blocks()
+            blocks = ParserBIR.parse(self.data)
 
             for block in blocks:
                 irsb = IRSB.empty_block(self.arch, self.addr)
