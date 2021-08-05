@@ -33,7 +33,6 @@ class Block:
    
     def get_label(self, label):
         value = label["val"]
-        value = int(value)
         return value
 
     def get_statements(self, statements, show_statements=False):

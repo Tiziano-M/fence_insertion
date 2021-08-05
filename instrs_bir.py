@@ -121,6 +121,8 @@ class Instruction_LOAD(BIR_Instruction):
     	    REGISTER_TYPE_LOAD = Type.int_16
         elif (REGISTER_TYPE_LOAD == "Bit8"):
     	    REGISTER_TYPE_LOAD = Type.int_8
+        elif (REGISTER_TYPE_LOAD == "Bit1"):
+    	    REGISTER_TYPE_LOAD = Type.int_1
         return REGISTER_TYPE_LOAD
 
     def compute_result(self):
@@ -154,14 +156,16 @@ class Instruction_CAST(BIR_Instruction):
 
     def get_type(self):
         ty_cast = self.block["sz"]
-        if (ty_cast == "64"):
+        if (ty_cast == 64):
     	    ty_cast = Type.int_64
-        elif (ty_cast == "32"):
+        elif (ty_cast == 32):
     	    ty_cast = Type.int_32
-        elif (ty_cast == "16"):
+        elif (ty_cast == 16):
     	    ty_cast = Type.int_16
-        elif (ty_cast == "8"):
+        elif (ty_cast == 8):
     	    ty_cast = Type.int_8
+        elif (ty_cast == 1):
+    	    ty_cast = Type.int_1
         return ty_cast
 
     def compute_result(self):
@@ -265,20 +269,19 @@ class Instruction_CONST(BIR_Instruction):
 
     def get_value(self):
         Imm = self.block["val"]
-        Imm = int(Imm)
         return Imm
 
     def get_type(self):
         ty = self.block["sz"]
-        if (ty == "64"):
+        if (ty == 64):
             ty = Type.int_64
-        elif (ty == "32"):
+        elif (ty == 32):
     	    ty = Type.int_32
-        elif (ty == "16"):
+        elif (ty == 16):
     	    ty = Type.int_16
-        elif (ty == "8"):
+        elif (ty == 8):
     	    ty = Type.int_8
-        elif (ty == "1"):
+        elif (ty == 1):
     	    ty = Type.int_1
         return ty
 
@@ -289,7 +292,7 @@ class Instruction_CONST(BIR_Instruction):
         return val
 
 
-class Instruction_LABEL(BIR_Instruction):
+class Instruction_BLE_LABEL(BIR_Instruction):
 	
     def __init__(self, arch, addr, block, irsb_c):
         super().__init__(arch, addr)
@@ -297,7 +300,7 @@ class Instruction_LABEL(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block["exp"], self.irsb_c)
+        val = self.map_label(self.block["exp"], self.irsb_c)
         return val
 
 
@@ -313,7 +316,19 @@ class Instruction_BLE_EXP(BIR_Instruction):
         return val
 
 
-class Instruction_ADDRESS(BIR_Instruction):
+class Instruction_BL_LABEL(BIR_Instruction):
+	
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        val = self.block["str"]
+        return val
+
+
+class Instruction_BL_ADDRESS(BIR_Instruction):
 	
     def __init__(self, arch, addr, block, irsb_c):
         super().__init__(arch, addr)
@@ -322,20 +337,19 @@ class Instruction_ADDRESS(BIR_Instruction):
 
     def get_addr(self):
         addr = self.block["val"]
-        addr = int(addr)
         return addr
 
     def get_type(self):
         ty = self.block["sz"]
-        if (ty == "64"):
+        if (ty == 64):
             ty = Type.int_64
-        elif (ty == "32"):
+        elif (ty == 32):
     	    ty = Type.int_32
-        elif (ty == "16"):
+        elif (ty == 16):
     	    ty = Type.int_16
-        elif (ty == "8"):
+        elif (ty == 8):
     	    ty = Type.int_8
-        elif (ty == "1"):
+        elif (ty == 1):
     	    ty = Type.int_1
         return ty
 
@@ -372,7 +386,7 @@ class Instruction_JMP(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.map_expressions(self.block["lbl"], self.irsb_c)
+        val = self.map_label_expressions(self.block["lbl"], self.irsb_c)
         self.jump(None, val)
 
 
@@ -385,8 +399,8 @@ class Instruction_CJMP(BIR_Instruction):
 
     def compute_result(self):
         condition = self.map_expressions(self.block["cnd"], self.irsb_c)
-        val1 = self.map_expressions(self.block["lblt"], self.irsb_c)
-        val2 = self.map_expressions(self.block["lblf"], self.irsb_c)
+        val1 = self.map_label_expressions(self.block["lblt"], self.irsb_c)
+        val2 = self.map_label_expressions(self.block["lblf"], self.irsb_c)
 
         self.addr = int(str(val1.rdt), 16)
         self.jump(condition, val2)

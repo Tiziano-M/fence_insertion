@@ -345,18 +345,10 @@ class BIR_Instruction:
 
     def map_expressions(self, block, irsb_c):
         exptype = block["exptype"]
-        if (exptype == "BExp_BinExp"):
-            binExp = instrs.Instruction_BINEXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            val = binExp.compute_result()
+        if (exptype == "BExp_Const"):
+            const = instrs.Instruction_CONST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = const.compute_result()
             return val
-        elif (exptype == "BExp_Load"):
-            load = instrs.Instruction_LOAD(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            val = load.compute_result()
-            return val
-        elif (exptype == "BExp_Store"):
-            store = instrs.Instruction_STORE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            store.compute_result()
-            return None
         elif (exptype == "BExp_Den"):
             den = instrs.Instruction_DEN(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = den.compute_result()
@@ -369,29 +361,42 @@ class BIR_Instruction:
             unary = instrs.Instruction_UNARY(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = unary.compute_result()
             return val
+        elif (exptype == "BExp_BinExp"):
+            binExp = instrs.Instruction_BINEXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = binExp.compute_result()
+            return val
         elif (exptype == "BExp_BinPred"):
             binpred = instrs.Instruction_BINPRED(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = binpred.compute_result()
             return val
-        elif (exptype == "BExp_Const"):
-            const = instrs.Instruction_CONST(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            val = const.compute_result()
+        elif (exptype == "BExp_Load"):
+            load = instrs.Instruction_LOAD(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = load.compute_result()
             return val
-        elif (exptype == "BLE_Label"):
-            label = instrs.Instruction_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            val = label.compute_result()
+        elif (exptype == "BExp_Store"):
+            store = instrs.Instruction_STORE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            store.compute_result()
+            return None
+
+    def map_label(self, block, irsb_c):
+        exptype = block["exptype"]
+        if (exptype == "BL_Label"):
+            bl_label = instrs.Instruction_BL_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = bl_label.compute_result()
+            return val
+        elif (exptype == "BL_Address"):
+            bl_address = instrs.Instruction_BL_ADDRESS(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = bl_address.compute_result()
+            return val
+
+    def map_label_expressions(self, block, irsb_c):
+        exptype = block["exptype"]
+        if (exptype == "BLE_Label"):
+            ble_label = instrs.Instruction_BLE_LABEL(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = ble_label.compute_result()
             return val
         elif (exptype == "BLE_Exp"):
             ble_exp = instrs.Instruction_BLE_EXP(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = ble_exp.compute_result()
             return val
-        elif (exptype == "BL_Address"):
-            address = instrs.Instruction_ADDRESS(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
-            val = address.compute_result()
-            return val
-
-        
-
-
-
 
