@@ -1,0 +1,45 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 0,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "SP_EL0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Minus",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 16,
+            "sz": 64
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 4,
+          "sz": 64
+        }
+      }
+    }
+  }
+]

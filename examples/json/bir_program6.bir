@@ -1,0 +1,51 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 3489669316,
+      "sz": 64
+    },
+    "stmts": [],
+    "estmt": {
+      "estmttype": "BStmt_CJmp",
+      "cnd": {
+        "exptype": "BExp_BinExp",
+        "type": "BIExp_Or",
+        "exp1": {
+          "exptype": "BExp_UnaryExp",
+          "type": "BIExp_Not",
+          "exp": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "ProcState_C",
+              "type": "imm1"
+            }
+          }
+        },
+        "exp2": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "ProcState_Z",
+            "type": "imm1"
+          }
+        }
+      },
+      "lblt": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489669320,
+          "sz": 64
+        }
+      },
+      "lblf": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489669336,
+          "sz": 64
+        }
+      }
+    }
+  }
+]
