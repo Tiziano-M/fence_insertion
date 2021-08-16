@@ -10,7 +10,7 @@ from pyvex.lifting.util.syntax_wrapper import VexValue
 from pyvex.expr import IRExpr, RdTmp
 from pyvex.lifting.util.vex_helper import JumpKind, vex_int_class
 
-import instrs_bir as instrs
+from . import instrs_bir as instrs
 
 l = logging.getLogger("instr")
 

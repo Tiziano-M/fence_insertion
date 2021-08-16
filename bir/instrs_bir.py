@@ -1,5 +1,5 @@
 from pyvex.lifting.util import Type, JumpKind
-from BIR_Instruction import BIR_Instruction
+from .BIR_Instruction import BIR_Instruction
 import logging
 
 
@@ -251,7 +251,7 @@ class Instruction_DEN(BIR_Instruction):
         elif (REGISTER_TYPE == "imm8"):
             REGISTER_TYPE = Type.int_8
         elif (REGISTER_TYPE == "imm1"):
-            REGISTER_TYPE = Type.int_1
+            REGISTER_TYPE = Type.int_8
         return (REGISTER_NAME, REGISTER_TYPE)
 
     def compute_result(self):
@@ -282,7 +282,7 @@ class Instruction_CONST(BIR_Instruction):
         elif (ty == 8):
     	    ty = Type.int_8
         elif (ty == 1):
-    	    ty = Type.int_1
+    	    ty = Type.int_8
         return ty
 
     def compute_result(self):

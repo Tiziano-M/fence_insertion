@@ -1,0 +1,23 @@
+`` BirProgram
+      [<|bb_label := BL_Address_HC (Imm64 0w) "F9400149 (ldr x9, [x10])";
+         bb_statements :=
+           [];
+         bb_last_statement := BStmt_CJmp (BExp_Den (BVar "ProcState_Z" BType_Bool))
+                    (BLE_Label (BL_Address (Imm64 8w)))
+                    (BLE_Label (BL_Address (Imm64 4w)))|>;
+       <|bb_label := BL_Address_HC (Imm64 4w) "8B03010A (add x10, x8, x3)";
+         bb_statements :=
+           [BStmt_Assign (BVar "R10" (BType_Imm Bit64))
+              (BExp_BinExp BIExp_Plus
+                 (BExp_Den (BVar "R3" (BType_Imm Bit64)))
+                 (BExp_Den (BVar "R8" (BType_Imm Bit64))))];
+         bb_last_statement := BStmt_Jmp (BLE_Label (BL_Address (Imm64 16w)))|>;
+       <|bb_label := BL_Address_HC (Imm64 8w) "F9400149 (ldr x9, [x10])";
+         bb_statements :=
+           [BStmt_Assert
+              (BExp_Den (BVar "R10" (BType_Imm Bit64)));
+            BStmt_Assign (BVar "R9" (BType_Imm Bit64))
+              (BExp_BinExp BIExp_Minus
+                 (BExp_Den (BVar "R3" (BType_Imm Bit64)))
+                 (BExp_Den (BVar "R8" (BType_Imm Bit64))))];
+         bb_last_statement := BStmt_Halt (BExp_Const (Imm64 32w))|>]``

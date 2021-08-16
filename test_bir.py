@@ -1,10 +1,10 @@
 import angr
-import angr_platforms.bir
+import bir
 import claripy
 
 
 def test():
-    proj = angr.Project("examples/bir_program.bir", main_opts={'backend': 'bir'})
+    proj = angr.Project("examples/json/test3.bir", main_opts={'backend': 'bir'})
 
     state = proj.factory.entry_state()
     simgr = proj.factory.simulation_manager(state)
@@ -12,7 +12,7 @@ def test():
 
 
 def test2():
-    proj = angr.Project("examples/test2.bir", main_opts={'backend': 'bir', 'base_addr': 3489667176})
+    proj = angr.Project("examples/json/test2.bir", main_opts={'backend': 'bir', 'base_addr': 3489667176})
 
     state = proj.factory.entry_state(addr=3489667176)
     simgr = proj.factory.simulation_manager(state)
@@ -20,7 +20,7 @@ def test2():
 
 
 def test3():
-    proj = angr.Project("examples/test3.bir", main_opts={'backend': 'bir'})
+    proj = angr.Project("examples/json/test3.bir", main_opts={'backend': 'bir'})
 
     state = proj.factory.entry_state()
     state.regs.R3 = claripy.BVS("R3", 64)
@@ -39,7 +39,7 @@ def test_unicorn():
 
 
 def test_simos():
-    proj = angr.Project("examples/test_obs5.bir")
+    proj = angr.Project("examples/json/test_obs5.bir")
     
     state = proj.factory.entry_state()
     state.regs.R21 = claripy.BVS("R21", 64)
@@ -72,7 +72,7 @@ def test_assert():
 
 
 def main():
-    test_assert()
+    test()
 
 
 if __name__ == '__main__':

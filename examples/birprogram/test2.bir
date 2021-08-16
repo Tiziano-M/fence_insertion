@@ -1,0 +1,29 @@
+BirProgram
+             [<|bb_label :=
+                  BL_Address_HC (Imm64 3489667176w)
+                    "D10083FF (sub sp, sp, #0x20)";
+                bb_statements :=
+                  [BStmt_Assign (BVar "SP_EL0" (BType_Imm Bit64))
+                     (BExp_BinExp BIExp_Minus
+                        (BExp_Den (BVar "SP_EL0" (BType_Imm Bit64)))
+                        (BExp_Const (Imm64 32w)))];
+                bb_last_statement :=
+                  BStmt_Jmp (BLE_Label (BL_Address (Imm64 3489667180w)))|>;
+              <|bb_label :=
+                  BL_Address_HC (Imm64 3489667204w)
+                    "8B000020 (add x0, x1, x0)";
+                bb_statements :=
+                  [BStmt_Assign (BVar "R0" (BType_Imm Bit64))
+                     (BExp_BinExp BIExp_Plus
+                        (BExp_Den (BVar "R0" (BType_Imm Bit64)))
+                        (BExp_Den (BVar "R1" (BType_Imm Bit64))))];
+                bb_last_statement :=
+                  BStmt_Jmp (BLE_Label (BL_Address (Imm64 3489667208w)))|>;
+              <|bb_label :=
+                  BL_Address_HC (Imm64 3489667404w)
+                    "54000061 (b.ne d0001958 <PKCS11_initialize+0x50>  // b.any)";
+                bb_statements := [];
+                bb_last_statement :=
+                  BStmt_CJmp (BExp_Den (BVar "ProcState_Z" BType_Bool))
+                    (BLE_Label (BL_Address (Imm64 3489667176w)))
+                    (BLE_Label (BL_Address (Imm64 3489667204w)))|>]

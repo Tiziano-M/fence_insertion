@@ -1,15 +1,15 @@
 import sys
 import archinfo
-from parse_bir import ParserBIR
-import instrs_bir as instrs
-from BIR_Instruction import BIR_Instruction
+from .parse_bir import ParserBIR
+from . import instrs_bir as instrs
+from .BIR_Instruction import BIR_Instruction
+from .IRSBSplitter import *
 
 from pyvex.lifting import register, Lifter
 from pyvex.lifting.util.vex_helper import *
 from pyvex.errors import LiftingException
 from angr.engines.vex import lifter
 from pyvex.block import IRSB
-from IRSBSplitter import *
 import logging
 
 l = logging.getLogger(__name__)

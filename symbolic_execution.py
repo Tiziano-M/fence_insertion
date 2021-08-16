@@ -1,9 +1,9 @@
 import argparse
 
 import angr
-import __init__
+import bir
 import claripy
-from lift_bir import cleanup_cache_lifting
+from bir.lift_bir import cleanup_cache_lifting
 
 
 parser = argparse.ArgumentParser()

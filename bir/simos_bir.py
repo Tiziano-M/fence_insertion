@@ -4,7 +4,7 @@ from angr import SimProcedure
 from angr.procedures import SIM_PROCEDURES as P, SIM_LIBRARIES as L
 from angr.procedures.definitions import SimSyscallLibrary
 
-from arch_bir import ArchBIR
+from .arch_bir import ArchBIR
 
 
 

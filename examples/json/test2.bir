@@ -1,0 +1,124 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 3489667176,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "SP_EL0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Minus",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 32,
+            "sz": 64
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489667180,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 3489667204,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Plus",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R1",
+              "type": "imm64"
+            }
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489667208,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 3489667404,
+      "sz": 64
+    },
+    "stmts": [],
+    "estmt": {
+      "estmttype": "BStmt_CJmp",
+      "cnd": {
+        "exptype": "BExp_Den",
+        "var": {
+          "name": "ProcState_Z",
+          "type": "imm1"
+        }
+      },
+      "lblt": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489667176,
+          "sz": 64
+        }
+      },
+      "lblf": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489667204,
+          "sz": 64
+        }
+      }
+    }
+  }
+]
