@@ -252,11 +252,14 @@ class Instruction_DEN(BIR_Instruction):
             REGISTER_TYPE = Type.int_8
         elif (REGISTER_TYPE == "imm1"):
             REGISTER_TYPE = Type.int_8
-        return (REGISTER_NAME, REGISTER_TYPE)
+            val = self.get(REGISTER_NAME, REGISTER_TYPE)
+            val = val.cast_to(Type.int_1)
+            return val
+        val = self.get(REGISTER_NAME, REGISTER_TYPE)
+        return val
 
     def compute_result(self):
-        reg, ty = self.get_register(self.block["var"])
-        val = self.get(reg, ty)
+        val = self.get_register(self.block["var"])
         return val
 
 
