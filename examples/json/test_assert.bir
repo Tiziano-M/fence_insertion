@@ -1,0 +1,129 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 0,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R22",
+            "type": "imm64"
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R9",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R10",
+              "type": "imm64"
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 4,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 4,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R23",
+            "type": "imm64"
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R9",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Store",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_Plus",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "R0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 56,
+              "sz": 64
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "val": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R1",
+              "type": "imm64"
+            }
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 8,
+          "sz": 64
+        }
+      }
+    }
+  }
+]

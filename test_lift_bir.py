@@ -5,11 +5,12 @@
 import logging
 import archinfo
 import pyvex
-from bir.arch_bir import ArchBIR
+from bir.arch_bir import *
 from bir.parse_bir import ParserBIR
 from bir.lift_bir import LifterBIR
 
 
+get_register_list("examples/json/test3.bir")
 bir_input = open("examples/json/test3.bir", "rb")
 bir_input = bir_input.read()
 

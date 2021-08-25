@@ -4,7 +4,9 @@ import claripy
 
 
 def test():
-    proj = angr.Project("examples/json/test3.bir", main_opts={'backend': 'bir'})
+    birprog = "examples/json/test3.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog, main_opts={'backend': 'bir'})
 
     state = proj.factory.entry_state()
     simgr = proj.factory.simulation_manager(state)
@@ -12,7 +14,9 @@ def test():
 
 
 def test2():
-    proj = angr.Project("examples/json/test2.bir", main_opts={'backend': 'bir', 'base_addr': 3489667176})
+    birprog = "examples/json/test2.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog, main_opts={'backend': 'bir', 'base_addr': 3489667176})
 
     state = proj.factory.entry_state(addr=3489667176)
     simgr = proj.factory.simulation_manager(state)
@@ -20,7 +24,9 @@ def test2():
 
 
 def test3():
-    proj = angr.Project("examples/json/test3.bir", main_opts={'backend': 'bir'})
+    birprog = "examples/json/test3.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog, main_opts={'backend': 'bir'})
 
     state = proj.factory.entry_state()
     state.regs.R3 = claripy.BVS("R3", 64)
@@ -39,15 +45,18 @@ def test_unicorn():
 
 
 def test_simos():
-    proj = angr.Project("examples/json/test_obs5.bir")
+    birprog = "examples/json/test_obs5.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog)
     
     state = proj.factory.entry_state()
     state.regs.R21 = claripy.BVS("R21", 64)
     state.regs.R10 = claripy.BVS("R10", 64)
+    state.regs.R13 = claripy.BVS("R13", 64)
     state.regs.R18 = claripy.BVS("R18", 64)
-    state.regs.R11 = claripy.BVS("R11", 64)
-    state.regs.R19 = claripy.BVS("R19", 64)
-    state.regs.R26 = claripy.BVS("R26", 64)
+    #state.regs.R11 = claripy.BVS("R11", 64)
+    #state.regs.R19 = claripy.BVS("R19", 64)
+    #state.regs.R26 = claripy.BVS("R26", 64)
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     print(simgr.deadended)
@@ -57,9 +66,12 @@ def test_simos():
 
 
 def test_assert():
-    proj = angr.Project("examples/test_assert.bir")
+    birprog = "examples/json/test_assert.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog)
 
     state = proj.factory.entry_state()
+    #state.inspect.b('address_concretization')
     state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
     state.regs.R22 = 0
@@ -68,6 +80,7 @@ def test_assert():
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     #simgr.move(from_stash='deadended', to_stash='failure', filter_func=lambda s: True if s.addr == 0x400 else False)
+    print(simgr.errored)
     return simgr
 
 

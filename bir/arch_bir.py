@@ -14,7 +14,7 @@ def regs_extraction_from_json(birprog, regs):
                             if reg["name"] != "MEM":
                                 regs.append(reg)
                         else:
-                            regs_extraction_from_json(dic[key], regs)
+                            regs_extraction_from_json(value, regs)
         elif isinstance(birprog, dict):
             for key,value in birprog.items():
                 if key == "var":
@@ -22,7 +22,7 @@ def regs_extraction_from_json(birprog, regs):
                     if reg["name"] != "MEM":
                         regs.append(reg)
                 else:
-                    regs_extraction_from_json(birprog[key], regs)
+                    regs_extraction_from_json(value, regs)
     except:
         raise Exception("Error of bir program in json format")
     return regs
@@ -51,7 +51,7 @@ def get_register_list(birprog):
             sz = 1
         vex_offset = vex_offset + 8
         ArchBIR.register_list.append(Register(name=reg["name"], size=sz, vex_offset=vex_offset))
-
+    
     return regs
 
 

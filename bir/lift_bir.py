@@ -27,11 +27,12 @@ def cleanup_cache_lifting():
 class LifterBIR(Lifter):
     REQUIRE_DATA_PY = True
     lifter.VEX_IRSB_MAX_SIZE = 2000000
+    #lifter.VEX_IRSB_MAX_INST = 99
 
     cache_lifting = None
 
 
-    def prelift(self, dump_irsb=True):
+    def prelift(self, dump_irsb=False):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
         dict_irsb = {}
 
@@ -58,6 +59,7 @@ class LifterBIR(Lifter):
                     splitter = IRSBSplitter(dict_irsb, irsb_c)
                     dict_irsb = splitter.update_dict()
         except:
+            l.error("Pre-lifting Error: Block Address {:#x}".format(block.label))
             raise LiftingException('Could not decode any instructions')
         print("Pre-Lifting: Done!\n")
         return dict_irsb

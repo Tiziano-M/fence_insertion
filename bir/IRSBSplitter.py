@@ -55,7 +55,7 @@ class IRSBSplitter:
                 break
         return is_syscall
         
-    def update_dict(self, dump_irsb=True):
+    def update_dict(self, dump_irsb=False):
         irsb2 = self.get_irsb2()
         irsb1 = self.get_irsb1()
         if dump_irsb:
