@@ -35,11 +35,12 @@ def init_regs(state, regs):
         
 
 def add_state_options(state):
+    state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
     state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
 
 
-def print_results(final_states):
+def print_results(final_states, dump_json=True):
     print("\n\n")
     print(f"RESULT: {len(final_states)} final states")
 
@@ -63,9 +64,10 @@ def print_results(final_states):
         dict_state["guards"] = list_guards
         dict_state["observations"] = list_obs
         output.append(dict_state)
-    # in the end, prints the json output
-    json_object = json.dumps(output, indent=4)
-    print(json_object)
+    if dump_json:
+        # in the end, prints the json output
+        json_object = json.dumps(output, indent=4)
+        print(json_object)
 
 
 def main():
@@ -84,6 +86,7 @@ def main():
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     print_results(simgr.deadended)
+    print(simgr.errored)
 
 
 
