@@ -84,6 +84,31 @@ def test_assert():
     return simgr
 
 
+def test_cfg():
+    from angr.analyses.cfg import cfg_fast
+    cfg_fast.VEX_IRSB_MAX_SIZE = 2000000
+
+    birprog = "examples/json/example_tutorial.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog)
+
+    state = proj.factory.entry_state()
+    state.options.add(angr.options.LAZY_SOLVES)
+    state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
+    state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
+
+    cfg = proj.analyses.CFGFast(normalize=True)
+
+    simgr = proj.factory.simulation_manager(state)
+    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=5)) # bound=0 if I want only one final state
+    
+    simgr.explore()
+    print(simgr.deadended)
+    print(simgr.errored)
+
+
+
+
 def main():
     test()
 
