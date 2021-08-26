@@ -1,4 +1,5 @@
 from pyvex.lifting.util import Type, JumpKind
+from pyvex.lifting.util.syntax_wrapper import VexValue
 from .BIR_Instruction import BIR_Instruction
 import logging
 
@@ -101,6 +102,23 @@ class Instruction_BINEXP(BIR_Instruction):
         elif operator == "BIExp_SignedRightShift":
             val = operand1 >> operand2.cast_to(Type.int_8)
             val.is_signed = True
+        return val
+
+
+class Instruction_IFTHENELSE(BIR_Instruction):
+
+    def __init__(self, arch, addr, block, irsb_c):
+        super().__init__(arch, addr)
+        self.block = block
+        self.irsb_c = irsb_c
+
+    def compute_result(self):
+        exp_cond = self.map_expressions(self.block["cond"], self.irsb_c)
+        exp_then = self.map_expressions(self.block["then"], self.irsb_c)
+        exp_else = self.map_expressions(self.block["else"], self.irsb_c)
+
+        val = self.ite(exp_cond, exp_then, exp_else)
+        val = VexValue(self.irsb_c, val)
         return val
  
 

@@ -369,6 +369,10 @@ class BIR_Instruction:
             binpred = instrs.Instruction_BINPRED(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = binpred.compute_result()
             return val
+        elif (exptype == "BExp_IfThenElse"):
+            ite = instrs.Instruction_IFTHENELSE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            val = ite.compute_result()
+            return val
         elif (exptype == "BExp_Load"):
             load = instrs.Instruction_LOAD(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             val = load.compute_result()

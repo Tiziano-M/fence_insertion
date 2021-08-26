@@ -1,0 +1,49 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 3489667764,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_IfThenElse",
+          "cond": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          },
+          "then": {
+            "exptype": "BExp_Const",
+            "val": 18446744073709551615,
+            "sz": 64
+          },
+          "else": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 3489667768,
+          "sz": 64
+        }
+      }
+    }
+  }
+]

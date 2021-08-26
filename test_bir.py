@@ -100,11 +100,25 @@ def test_cfg():
     cfg = proj.analyses.CFGFast(normalize=True)
 
     simgr = proj.factory.simulation_manager(state)
-    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=5)) # bound=0 if I want only one final state
+    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=5)) # bound=0 if I don't want repeated final state
     
     simgr.explore()
     print(simgr.deadended)
     print(simgr.errored)
+
+
+def test_ite():
+    birprog = "examples/json/test_ite.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog, main_opts={'base_addr': 3489667764})
+
+    state = proj.factory.entry_state(addr=3489667764)
+    state.regs.R0 = claripy.BVS("R0", 64)
+
+    simgr = proj.factory.simulation_manager(state)
+    simgr.explore()
+    print(simgr.deadended)
+    print(simgr.deadended[0].regs.R0)
 
 
 
