@@ -49,13 +49,13 @@ def print_results(final_states, dump_json=True):
     for state in final_states:
         print("="*80)
         print("STATE:", state)
-        dict_state["addr"] = str(state)
+        dict_state["addr"] = hex(state.addr)
         # is a listing of the basic block addresses executed by the state.
         list_addrs = state.history.bbl_addrs.hardcopy
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value), list_addrs))
         list_guards = [str(guard) for guard in state.history.jump_guards.hardcopy]
-        list_obs = [str(obs) for obs in state.observations.get_list_obs()]
+        list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.get_list_obs()]
         print("\t- Path:\t\t", list_addrs)
         print("\t- Guards:\t", list_guards)
         print("\t- Observations:\t", list_obs)
@@ -63,7 +63,7 @@ def print_results(final_states, dump_json=True):
         dict_state["path"] = list_addrs
         dict_state["guards"] = list_guards
         dict_state["observations"] = list_obs
-        output.append(dict_state)
+        output.append(dict_state.copy())
     if dump_json:
         # in the end, prints the json output
         json_object = json.dumps(output, indent=4)

@@ -8,15 +8,32 @@ from .arch_bir import ArchBIR
 
 
 
-
-class Observation(SimProcedure):
-
+class Accumulate(SimProcedure):
+    """
+    Keeps the observations of an Observe statement.
+    """
     num_args = 1
     NUM_ARGS = 1
 
     def run(self, obs):
         print("\nObservation:", obs, "\n")
-        self.state.observations.append(obs)
+        self.state.accumulate.append(obs)
+        #print(self.state.accumulate.get_list_obs())
+
+
+class Observation(SimProcedure):
+    """
+    Stores the observations by fetching them into the accumulator and then reset it.
+    """
+    num_args = 1
+    NUM_ARGS = 1
+
+    def run(self, idx):
+        obss = self.state.accumulate.get_list_obs().copy()
+        idx_obss = (idx.ast.args[0], obss)
+        self.state.observations.append(idx_obss)
+        self.state.accumulate.get_list_obs().clear()
+        #print(self.state.accumulate.get_list_obs())
         #print(self.state.observations.get_list_obs())
 
 
@@ -25,11 +42,12 @@ class Observation(SimProcedure):
 
 P['bir'] = {}
 P['bir']['observation'] = Observation
+P['bir']['accumulate'] = Accumulate
 
 syscall_lib = SimSyscallLibrary()
 syscall_lib.set_library_names('bir')
 syscall_lib.add_all_from_dict(P['bir'])
-syscall_lib.add_number_mapping_from_dict('BIR', {0 : 'observation'})
+syscall_lib.add_number_mapping_from_dict('BIR', {0 : 'observation', 1: 'accumulate'})
 
 
 

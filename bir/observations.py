@@ -24,5 +24,23 @@ class SimStateObservations(SimStatePlugin):
 
 
 
+class SimStateAccumulate(SimStatePlugin):
+    def __init__(self, backer=None):
+        super(SimStateAccumulate, self).__init__()
+        self._backer = backer if backer is not None else []
+
+    def get_list_obs(self):
+        return self._backer
+
+    def append(self, obs):
+        self._backer.append(obs)
+
+    @SimStatePlugin.memo
+    def copy(self, memo):   # pylint: disable=unused-argument
+        return SimStateAccumulate(list(self._backer))
+
+
+
 from angr.sim_state import SimState
 SimState.register_default('observations', SimStateObservations)
+SimState.register_default('accumulate', SimStateAccumulate)

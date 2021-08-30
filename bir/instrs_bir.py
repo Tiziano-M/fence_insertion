@@ -389,13 +389,20 @@ class Instruction_OBSERVE(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
+        idx = int(self.block["id"])
         condition = self.map_expressions(self.block["cnd"], self.irsb_c)
-        # Now we get only one observation
-        obs = self.map_expressions(self.block["obss"][0], self.irsb_c)
+     
+        # to match the system call with 1 of 'accumulate'
+        self.put(self.constant(1, Type.int_64), 'syscall_num')
+        for obs in self.block["obss"]:
+            # Now we get only one observation
+            obs = self.map_expressions(obs, self.irsb_c)
+            self.put(obs, 'obs')
+            self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
 
-        # to always match the system call with 0 of 'observation'
+        # to match the system call with 0 of 'observation'
         self.put(self.constant(0, Type.int_64), 'syscall_num')
-        self.put(obs, 'obs')
+        self.put(self.constant(idx, Type.int_64), 'obs')
         self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
