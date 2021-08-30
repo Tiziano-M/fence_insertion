@@ -2,9 +2,9 @@ import argparse
 import json
 
 import angr
-import bir
+import bir_angr.bir
 import claripy
-from bir.lift_bir import cleanup_cache_lifting
+from bir_angr.bir.lift_bir import cleanup_cache_lifting
 
 
 parser = argparse.ArgumentParser()
@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 
 def set_registers(birprog):
-    regs = bir.arch_bir.get_register_list(birprog)
+    regs = bir_angr.bir.arch_bir.get_register_list(birprog)
     return regs
 
 
