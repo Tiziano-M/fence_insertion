@@ -17,8 +17,8 @@ class Accumulate(SimProcedure):
 
     def run(self, obs):
         print("\nObservation:", obs, "\n")
-        self.state.accumulate.append(obs)
-        #print(self.state.accumulate.get_list_obs())
+        self.state.observations.accumulate.append(obs)
+        #print(self.state.observations.accumulate.list_obs)
 
 
 class Observation(SimProcedure):
@@ -29,12 +29,12 @@ class Observation(SimProcedure):
     NUM_ARGS = 1
 
     def run(self, idx):
-        obss = self.state.accumulate.get_list_obs().copy()
+        obss = self.state.observations.accumulate.list_obs.copy()
         idx_obss = (idx.ast.args[0], obss)
         self.state.observations.append(idx_obss)
-        self.state.accumulate.get_list_obs().clear()
-        #print(self.state.accumulate.get_list_obs())
-        #print(self.state.observations.get_list_obs())
+        self.state.observations.accumulate.list_obs.clear()
+        #print(self.state.observations.accumulate.list_obs)
+        #print(self.state.observations.list_obs)
 
 
 

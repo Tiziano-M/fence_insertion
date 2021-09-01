@@ -55,7 +55,7 @@ def print_results(final_states, dump_json=True):
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value), list_addrs))
         list_guards = [str(guard) for guard in state.history.jump_guards.hardcopy]
-        list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.get_list_obs()]
+        list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
         print("\t- Path:\t\t", list_addrs)
         print("\t- Guards:\t", list_guards)
         print("\t- Observations:\t", list_obs)
