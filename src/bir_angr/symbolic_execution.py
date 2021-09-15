@@ -38,6 +38,28 @@ def add_state_options(state):
     state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
     state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
+    state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
+    state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
+    # options to track memory access operations in the history of actions
+    #state.options.add(angr.options.TRACK_REGISTER_ACTIONS)
+    #state.options.add(angr.options.TRACK_MEMORY_ACTIONS)
+
+
+def mem_read_after(state):
+    print("\nREAD")
+    print(state.inspect.mem_read_address)
+    print(state.inspect.mem_read_expr)
+
+    mem_expr_arg = state.inspect.mem_read_expr.__repr__(inner=True)
+    print(mem_expr_arg)
+    if state.inspect.mem_read_expr.symbolic and mem_expr_arg.count("mem_"):
+        mem_addr = state.inspect.mem_read_address
+        mem_val = state.inspect.mem_read_expr
+        mem_var = claripy.BVS(f"MEM[{mem_addr}]", state.inspect.mem_read_expr.length)
+        mem_expr = mem_var == mem_val
+        state.add_constraints(mem_expr)
+        state.inspect.mem_read_expr = mem_var
+    print(state.inspect.mem_read_expr)
 
 
 def print_results(final_states, dump_json=True):
@@ -82,10 +104,18 @@ def main():
     init_regs(state, regs)
     add_state_options(state)
 
+    # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
+    #state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+
     # executes the symbolic execution and prints the results
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
     print_results(simgr.deadended)
+
+    #print("\n\nACTIONS:")
+    #for action in simgr.deadended[0].history.actions.hardcopy:
+    #    print(action)
+
     print(simgr.errored)
 
 
