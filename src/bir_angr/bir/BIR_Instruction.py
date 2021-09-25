@@ -328,6 +328,9 @@ class BIR_Instruction:
         elif (stmttype == "BStmt_Observe"):
             observe = instrs.Instruction_OBSERVE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
             observe.compute_result()
+        elif (stmttype == "BStmt_ObserveRef"):
+            observe = instrs.Instruction_OBSERVE(arch=archinfo.arch_from_id('bir'), addr=0, block=block, irsb_c=irsb_c)
+            observe.compute_result()
         elif (stmttype == None):
             irsb_c.noop()
 

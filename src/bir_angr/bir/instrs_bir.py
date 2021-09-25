@@ -388,14 +388,22 @@ class Instruction_OBSERVE(BIR_Instruction):
         self.block = block
         self.irsb_c = irsb_c
 
+    def get_idx(self):
+        if "id" in self.block:
+            idx = int(self.block["id"])
+        elif "obsref" in self.block:
+            idx = self.block["obsref"]
+        else:
+            raise Exception("Error in getting the index of the Observe statement!")
+        return idx
+
     def compute_result(self):
-        idx = int(self.block["id"])
+        idx = self.get_idx()
         condition = self.map_expressions(self.block["cnd"], self.irsb_c)
      
         # to match the system call with 1 of 'accumulate'
         self.put(self.constant(1, Type.int_64), 'syscall_num')
         for obs in self.block["obss"]:
-            # Now we get only one observation
             obs = self.map_expressions(obs, self.irsb_c)
             self.put(obs, 'obs')
             self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
