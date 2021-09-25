@@ -1,0 +1,1184 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 0,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "SP_EL0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Minus",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 16,
+            "sz": 64
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 4,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 4,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_And",
+          "exp1": {
+            "exptype": "BExp_BinPred",
+            "type": "BIExp_LessOrEqual",
+            "exp1": {
+              "exptype": "BExp_BinExp",
+              "type": "BIExp_Plus",
+              "exp1": {
+                "exptype": "BExp_Den",
+                "var": {
+                  "name": "SP_EL0",
+                  "type": "imm64"
+                }
+              },
+              "exp2": {
+                "exptype": "BExp_Const",
+                "val": 8,
+                "sz": 64
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 18446744073709551607,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_BinExp",
+              "type": "BIExp_Or",
+              "exp1": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessThan",
+                "exp1": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                },
+                "exp2": {
+                  "exptype": "BExp_BinExp",
+                  "type": "BIExp_Plus",
+                  "exp1": {
+                    "exptype": "BExp_Den",
+                    "var": {
+                      "name": "SP_EL0",
+                      "type": "imm64"
+                    }
+                  },
+                  "exp2": {
+                    "exptype": "BExp_Const",
+                    "val": 8,
+                    "sz": 64
+                  }
+                }
+              },
+              "exp2": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessOrEqual",
+                "exp1": {
+                  "exptype": "BExp_BinExp",
+                  "type": "BIExp_Plus",
+                  "exp1": {
+                    "exptype": "BExp_Const",
+                    "val": 8,
+                    "sz": 64
+                  },
+                  "exp2": {
+                    "exptype": "BExp_BinExp",
+                    "type": "BIExp_Plus",
+                    "exp1": {
+                      "exptype": "BExp_Den",
+                      "var": {
+                        "name": "SP_EL0",
+                        "type": "imm64"
+                      }
+                    },
+                    "exp2": {
+                      "exptype": "BExp_Const",
+                      "val": 8,
+                      "sz": 64
+                    }
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                }
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_BinExp",
+              "type": "BIExp_Or",
+              "exp1": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessThan",
+                "exp1": {
+                  "exptype": "BExp_BinExp",
+                  "type": "BIExp_Plus",
+                  "exp1": {
+                    "exptype": "BExp_Den",
+                    "var": {
+                      "name": "SP_EL0",
+                      "type": "imm64"
+                    }
+                  },
+                  "exp2": {
+                    "exptype": "BExp_Const",
+                    "val": 8,
+                    "sz": 64
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                }
+              },
+              "exp2": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessOrEqual",
+                "exp1": {
+                  "exptype": "BExp_Const",
+                  "val": 16777216,
+                  "sz": 64
+                },
+                "exp2": {
+                  "exptype": "BExp_BinExp",
+                  "type": "BIExp_Plus",
+                  "exp1": {
+                    "exptype": "BExp_Den",
+                    "var": {
+                      "name": "SP_EL0",
+                      "type": "imm64"
+                    }
+                  },
+                  "exp2": {
+                    "exptype": "BExp_Const",
+                    "val": 8,
+                    "sz": 64
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "MEM",
+          "type": "mem_64_8"
+        },
+        "exp": {
+          "exptype": "BExp_Store",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_Plus",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 8,
+              "sz": 64
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "val": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 8,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 8,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_And",
+          "exp1": {
+            "exptype": "BExp_BinPred",
+            "type": "BIExp_LessOrEqual",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 18446744073709551607,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_BinExp",
+              "type": "BIExp_Or",
+              "exp1": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessThan",
+                "exp1": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                },
+                "exp2": {
+                  "exptype": "BExp_Den",
+                  "var": {
+                    "name": "SP_EL0",
+                    "type": "imm64"
+                  }
+                }
+              },
+              "exp2": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessOrEqual",
+                "exp1": {
+                  "exptype": "BExp_BinExp",
+                  "type": "BIExp_Plus",
+                  "exp1": {
+                    "exptype": "BExp_Const",
+                    "val": 8,
+                    "sz": 64
+                  },
+                  "exp2": {
+                    "exptype": "BExp_Den",
+                    "var": {
+                      "name": "SP_EL0",
+                      "type": "imm64"
+                    }
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                }
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_BinExp",
+              "type": "BIExp_Or",
+              "exp1": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessThan",
+                "exp1": {
+                  "exptype": "BExp_Den",
+                  "var": {
+                    "name": "SP_EL0",
+                    "type": "imm64"
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 0,
+                  "sz": 64
+                }
+              },
+              "exp2": {
+                "exptype": "BExp_BinPred",
+                "type": "BIExp_LessOrEqual",
+                "exp1": {
+                  "exptype": "BExp_Const",
+                  "val": 16777216,
+                  "sz": 64
+                },
+                "exp2": {
+                  "exptype": "BExp_Den",
+                  "var": {
+                    "name": "SP_EL0",
+                    "type": "imm64"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "MEM",
+          "type": "mem_64_8"
+        },
+        "exp": {
+          "exptype": "BExp_Store",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "val": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R1",
+              "type": "imm64"
+            }
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 12,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 12,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R2",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_Plus",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 8,
+              "sz": 64
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 16,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 16,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R3",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 20,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 20,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R4",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_Plus",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 8,
+              "sz": 64
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 24,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 24,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assert",
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_And",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "SP_EL0",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 7,
+              "sz": 64
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R5",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "SP_EL0",
+              "type": "imm64"
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 28,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 28,
+      "sz": 64
+    },
+    "stmts": [],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 56,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 32,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R3",
+            "type": "imm64"
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 36,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 36,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Plus",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 1,
+            "sz": 64
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 40,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 40,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R3",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R0",
+            "type": "imm64"
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 44,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 44,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R2",
+            "type": "imm64"
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 48,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 48,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_BinExp",
+          "type": "BIExp_Plus",
+          "exp1": {
+            "exptype": "BExp_Const",
+            "val": 18446744073709551615,
+            "sz": 64
+          },
+          "exp2": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 52,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 52,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R2",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R0",
+            "type": "imm64"
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 56,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 56,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R0",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Den",
+          "var": {
+            "name": "R2",
+            "type": "imm64"
+          }
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 60,
+          "sz": 64
+        }
+      }
+    }
+  },
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 60,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "ProcState_C",
+          "type": "imm1"
+        },
+        "exp": {
+          "exptype": "BExp_Const",
+          "val": 1,
+          "sz": 1
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "ProcState_N",
+          "type": "imm1"
+        },
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_SignedLessThan",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "ProcState_V",
+          "type": "imm1"
+        },
+        "exp": {
+          "exptype": "BExp_Const",
+          "val": 0,
+          "sz": 1
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "ProcState_Z",
+          "type": "imm1"
+        },
+        "exp": {
+          "exptype": "BExp_BinPred",
+          "type": "BIExp_Equal",
+          "exp1": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R0",
+              "type": "imm64"
+            }
+          },
+          "exp2": {
+            "exptype": "BExp_Const",
+            "val": 0,
+            "sz": 64
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_ObserveRef",
+        "obsref": 0,
+        "cnd": {
+          "exptype": "BExp_Const",
+          "val": 0,
+          "sz": 1
+        },
+        "obss": []
+      },
+      {
+        "stmttype": "BStmt_ObserveRef",
+        "obsref": 1,
+        "cnd": {
+          "exptype": "BExp_Const",
+          "val": 0,
+          "sz": 1
+        },
+        "obss": []
+      },
+      {
+        "stmttype": "BStmt_ObserveRef",
+        "obsref": 0,
+        "cnd": {
+          "exptype": "BExp_Const",
+          "val": 0,
+          "sz": 1
+        },
+        "obss": []
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 64,
+          "sz": 64
+        }
+      }
+    }
+  }
+]

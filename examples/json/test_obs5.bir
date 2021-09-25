@@ -88,6 +88,20 @@
               "name": "R21",
               "type": "imm64"
             }
+          },
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R31",
+              "type": "imm64"
+            }
+          },
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R30",
+              "type": "imm64"
+            }
           }
         ],
         "obsf": "HD"
@@ -105,6 +119,32 @@
             "type": "imm64"
           }
         }
+      },
+      {
+        "stmttype": "BStmt_Observe",
+        "id": "0",
+        "cnd": {
+          "exptype": "BExp_Const",
+          "val": 1,
+          "sz": 1
+        },
+        "obss": [
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R4",
+              "type": "imm64"
+            }
+          },
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R5",
+              "type": "imm64"
+            }
+          }
+        ],
+        "obsf": "HD"
       }
     ],
     "estmt": {
@@ -182,6 +222,20 @@
             "exptype": "BExp_Den",
             "var": {
               "name": "R10",
+              "type": "imm64"
+            }
+          },
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R11",
+              "type": "imm64"
+            }
+          },
+          {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "R12",
               "type": "imm64"
             }
           }
