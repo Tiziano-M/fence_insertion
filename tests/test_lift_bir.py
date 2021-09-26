@@ -1,6 +1,9 @@
 #######################################################
 ######## other tests in pyvex/tests/test.py
 #######################################################
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src/bir_angr"))
 
 import logging
 import archinfo

@@ -1,6 +1,12 @@
-import angr
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src/bir_angr"))
+
+
 import bir
+import angr
 import claripy
+
 
 
 def test():
@@ -37,11 +43,6 @@ def test3():
     print(simgr.deadended)
     print(simgr.deadended[0].regs.R9)
     print(simgr.deadended[1].regs.R10)
-
-
-def test_unicorn():
-    from angr.engines.unicorn import SimEngineUnicorn
-    proj = angr.Project("examples/test.bir", main_opts={'backend': 'bir'}, engine=SimEngineUnicorn)
 
 
 def test_simos():
@@ -119,6 +120,24 @@ def test_ite():
     simgr.explore()
     print(simgr.deadended)
     print(simgr.deadended[0].regs.R0)
+
+
+def test_track_actions():
+    birprog = "examples/json/test_store3.bir"
+    bir.arch_bir.get_register_list(birprog)
+    proj = angr.Project(birprog)
+
+    state = proj.factory.entry_state()
+    # options to track memory access operations in the history of actions
+    state.options.add(angr.options.TRACK_REGISTER_ACTIONS)
+    state.options.add(angr.options.TRACK_MEMORY_ACTIONS)
+
+    simgr = proj.factory.simulation_manager(state)
+    simgr.explore()
+
+    print("\n\nACTIONS:")
+    for action in simgr.deadended[0].history.actions.hardcopy:
+        print(action)
 
 
 

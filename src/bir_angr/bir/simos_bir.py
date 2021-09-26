@@ -23,7 +23,7 @@ class Accumulate(SimProcedure):
 
 class Observation(SimProcedure):
     """
-    Stores the observations by fetching them into the accumulator and then reset it.
+    Stores the observations by fetching them into the accumulator and then resets it.
     """
     num_args = 1
     NUM_ARGS = 1
@@ -68,7 +68,7 @@ class SimBIR(SimUserland):
 
 
 class SimBIRSyscall(SimCC):
-    ARG_REGS = ['obs']
+    ARG_REGS = ['obs'] # A list of all the registers used for integral args to be passed in procedures
     RETURN_ADDR = SimRegArg('ip_at_syscall', 8)
     #RETURN_VAL = SimRegArg('obs', 8)
     ARCH = ArchBIR

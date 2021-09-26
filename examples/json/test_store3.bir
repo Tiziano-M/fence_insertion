@@ -1,0 +1,157 @@
+[
+  {
+    "lbl": {
+      "exptype": "BL_Address",
+      "val": 0,
+      "sz": 64
+    },
+    "stmts": [
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R12",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_BinExp",
+            "type": "BIExp_Plus",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "R10",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 152,
+              "sz": 64
+            }
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "MEM",
+          "type": "mem_64_8"
+        },
+        "exp": {
+          "exptype": "BExp_Store",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+            "exptype": "BExp_Den",
+              "var": {
+                "name": "R12",
+                "type": "imm64"
+              }
+          },
+          "endi": "BEnd_LittleEndian",
+          "val": {
+              "exptype": "BExp_Load",
+              "mem": {
+                "exptype": "BExp_Den",
+                "var": {
+                  "name": "MEM",
+                  "type": "mem_64_8"
+                }
+              },
+              "addr": {
+                "exptype": "BExp_BinExp",
+                "type": "BIExp_Plus",
+                "exp1": {
+                  "exptype": "BExp_Den",
+                  "var": {
+                    "name": "R11",
+                    "type": "imm64"
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 38,
+                  "sz": 64
+                }
+              },
+              "endi": "BEnd_LittleEndian",
+              "sz": "Bit64"
+          }
+        }
+      },
+      {
+        "stmttype": "BStmt_Assign",
+        "var": {
+          "name": "R18",
+          "type": "imm64"
+        },
+        "exp": {
+          "exptype": "BExp_Load",
+          "mem": {
+            "exptype": "BExp_Den",
+            "var": {
+              "name": "MEM",
+              "type": "mem_64_8"
+            }
+          },
+          "addr": {
+              "exptype": "BExp_Load",
+              "mem": {
+                "exptype": "BExp_Den",
+                "var": {
+                  "name": "MEM",
+                  "type": "mem_64_8"
+                }
+              },
+              "addr": {
+                "exptype": "BExp_BinExp",
+                "type": "BIExp_Plus",
+                "exp1": {
+                  "exptype": "BExp_Den",
+                  "var": {
+                    "name": "R10",
+                    "type": "imm64"
+                  }
+                },
+                "exp2": {
+                  "exptype": "BExp_Const",
+                  "val": 152,
+                  "sz": 64
+                }
+              },
+              "endi": "BEnd_LittleEndian",
+              "sz": "Bit64"
+          },
+          "endi": "BEnd_LittleEndian",
+          "sz": "Bit64"
+        }
+      }
+    ],
+    "estmt": {
+      "estmttype": "BStmt_Jmp",
+      "lbl": {
+        "exptype": "BLE_Label",
+        "exp": {
+          "exptype": "BL_Address",
+          "val": 4,
+          "sz": 64
+        }
+      }
+    }
+  }
+]
