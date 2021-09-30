@@ -62,7 +62,7 @@ def mem_read_after(state):
     print(state.inspect.mem_read_expr)
 
 
-def print_results(final_states, dump_json=True):
+def print_results(final_states, errored_states, dump_json=True):
     print("\n\n")
     print(f"RESULT: {len(final_states)} final states")
 
@@ -82,13 +82,18 @@ def print_results(final_states, dump_json=True):
         print("\t- Guards:\t", list_guards)
         print("\t- Observations:\t", list_obs)
         print("="*80)
+        # append to dictionary for json output
         dict_state["path"] = list_addrs
         dict_state["guards"] = list_guards
         dict_state["observations"] = list_obs
         output.append(dict_state.copy())
+    if False:
+        print("="*80)
+        print(errored_states)
     if dump_json:
         # in the end, prints the json output
         json_object = json.dumps(output, indent=4)
+        print(("="*10) + " JSON START " + ("="*10))
         print(json_object)
 
 
@@ -110,13 +115,12 @@ def main():
     # executes the symbolic execution and prints the results
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
-    print_results(simgr.deadended)
+    print_results(simgr.deadended, simgr.errored)
 
     #print("\n\nACTIONS:")
     #for action in simgr.deadended[0].history.actions.hardcopy:
     #    print(action)
 
-    print(simgr.errored)
 
 
 
