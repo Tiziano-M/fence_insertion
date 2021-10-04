@@ -4,7 +4,7 @@ import json
 import angr
 import bir_angr.bir
 import claripy
-from bir_angr.bir.lift_bir import cleanup_cache_lifting
+from bir_angr.bir.concretization_strategy_bir import SimConcretizationStrategyBIR
 
 
 parser = argparse.ArgumentParser()
@@ -46,9 +46,9 @@ def add_state_options(state):
 
 
 def mem_read_after(state):
-    print("\nREAD")
-    print(state.inspect.mem_read_address)
-    print(state.inspect.mem_read_expr)
+    #print("\nREAD")
+    #print(state.inspect.mem_read_address)
+    #print(state.inspect.mem_read_expr)
 
     mem_expr_arg = state.inspect.mem_read_expr.__repr__(inner=True)
     print(mem_expr_arg)
@@ -60,6 +60,15 @@ def mem_read_after(state):
         state.add_constraints(mem_expr)
         state.inspect.mem_read_expr = mem_var
     print(state.inspect.mem_read_expr)
+
+
+def add_bir_concretization_strategy(state, min_addr):
+    # minimum value where the concretization range starts
+    lower_mem_bound = 0xffffff456
+    repeat_expr = claripy.BVS("REPEAT", 64)
+    bir_concr_strategy = SimConcretizationStrategyBIR(min_addr, lower_mem_bound, repeat_expr)
+    state.memory.read_strategies.insert(0, bir_concr_strategy)
+    state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
 def print_results(final_states, errored_states, dump_json=True):
@@ -110,7 +119,10 @@ def main():
     add_state_options(state)
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
-    #state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+    state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+
+    # adds a concretization strategy with some constraints for a bir program
+    add_bir_concretization_strategy(state, proj.loader.max_addr)
 
     # executes the symbolic execution and prints the results
     simgr = proj.factory.simulation_manager(state)
