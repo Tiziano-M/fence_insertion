@@ -11,16 +11,13 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
 
 
     def _concretize(self, memory, addr):
+        if addr.length != self._repeat_expr.length:
+            addr.length = 64
+
         # avoids the location where the program is loaded based on proj.loader.max_addr
         addr_constraint1 = [ claripy.UGT(addr, self._min_addr) ]
         # range of memory where to concretize
-        addr_constraint2 = [ claripy.And(claripy.UGT(addr, self._lower_mem_bound), claripy.ULT(addr, self._max(memory, addr))) ]
-
-        if addr.length != self._repeat_expr.length:
-            size = self._repeat_expr.length - addr.length
-            addr = addr.zero_extend(size)
-        #print(addr)
-        #print(self._repeat_constraints + [ addr == self._repeat_expr ] + addr_constraint1 + addr_constraint2)
+        addr_constraint2 = [ claripy.UGT(addr, self._lower_mem_bound) ]
 
         c = self._any(
             memory, addr,
