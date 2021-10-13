@@ -1,6 +1,7 @@
 from pyvex.lifting.util import Type, JumpKind
 from pyvex.lifting.util.syntax_wrapper import VexValue
 from .BIR_Instruction import BIR_Instruction
+from .lift_bir import LifterBIR
 import logging
 
 
@@ -44,7 +45,7 @@ class Instruction_ASSERT(BIR_Instruction):
 
     def compute_result(self):
         condition = self.get_argument()
-        to_addr = self.constant(0x400, Type.int_64)
+        to_addr = self.constant(LifterBIR.extern_addr, Type.int_64)
         negated_condition = self.ite(condition, self.constant(0, condition.ty), self.constant(1, condition.ty))
 
         self.irsb_c.add_exit(negated_condition, to_addr.rdt, JumpKind.Boring, self.arch.ip_offset)
@@ -406,12 +407,12 @@ class Instruction_OBSERVE(BIR_Instruction):
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
             self.put(obs, 'obs')
-            self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
+            self.jump(condition, self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
         # to match the system call with 0 of 'observation'
         self.put(self.constant(0, Type.int_64), 'syscall_num')
         self.put(self.constant(idx, Type.int_64), 'obs')
-        self.jump(condition, self.constant(0x700, Type.int_64), jumpkind=JumpKind.Syscall)
+        self.jump(condition, self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):

@@ -1,8 +1,6 @@
 import sys
 import archinfo
 from .parse_bir import ParserBIR
-from . import instrs_bir as instrs
-from .BIR_Instruction import BIR_Instruction
 from .IRSBSplitter import *
 
 from pyvex.lifting import register, Lifter
@@ -23,6 +21,11 @@ def cleanup_cache_lifting():
     LifterBIR.cache_lifting = None
 
 
+def set_extern_addr(addr):
+    LifterBIR.extern_addr = addr
+
+
+
 
 class LifterBIR(Lifter):
     REQUIRE_DATA_PY = True
@@ -30,7 +33,7 @@ class LifterBIR(Lifter):
     #lifter.VEX_IRSB_MAX_INST = 99
 
     cache_lifting = None
-
+    extern_addr = None
 
     def prelift(self, dump_irsb=False):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
@@ -56,6 +59,8 @@ class LifterBIR(Lifter):
                 if dump_irsb:
                     irsb_c.irsb.pp()
                 if is_syscall:
+                    if IRSBSplitter.obs_dst is None:
+                        IRSBSplitter.obs_dst = LifterBIR.extern_addr
                     splitter = IRSBSplitter(dict_irsb, irsb_c)
                     dict_irsb = splitter.update_dict()
         except:
@@ -77,9 +82,9 @@ class LifterBIR(Lifter):
             #print(self.addr)
             if self.addr in irsbs:
                 self.irsb = irsbs[self.addr].irsb
-            # 2 way to manage the exit
-            #if not any(key == int(str(self.irsb.next), 16) for key in irsbs):
-            #    self.irsb.jumpkind = JumpKind.Exit
+                # 2 way to manage the exit
+                #if not any(key == int(str(self.irsb.next), 16) for key in irsbs):
+                #    self.irsb.jumpkind = JumpKind.Exit
             elif self.addr == 0x400:
                 self.irsb.jumpkind = JumpKind.NoDecode
             else:
@@ -99,3 +104,6 @@ class LifterBIR(Lifter):
 
 register(LifterBIR, 'BIR')
 
+
+from . import instrs_bir as instrs
+from .BIR_Instruction import BIR_Instruction

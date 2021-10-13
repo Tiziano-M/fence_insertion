@@ -113,6 +113,10 @@ def main():
     # initializes the angr project
     proj = angr.Project(args.program, main_opts={'base_addr': args.base_addr})
 
+    # sets addresses for assertion and observations in an external region
+    extern_addr = proj.loader.kernel_object.min_addr+0x5
+    bir_angr.bir.lift_bir.set_extern_addr(extern_addr)
+
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=args.base_addr)
     init_regs(state, regs)
