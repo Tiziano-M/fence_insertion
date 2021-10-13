@@ -72,7 +72,7 @@ def add_bir_concretization_strategy(state, min_addr):
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(final_states, errored_states, dump_json=True):
+def print_results(final_states, errored_states, assert_addr, dump_json=True):
     print("\n\n")
     print(f"RESULT: {len(final_states)} final states")
 
@@ -80,21 +80,30 @@ def print_results(final_states, errored_states, dump_json=True):
     dict_state = {}
     for state in final_states:
         print("="*80)
-        print("STATE:", state)
-        dict_state["addr"] = hex(state.addr)
+        print("STATE:", state, "------> Assert failed" if state.addr == assert_addr else "")
         # is a listing of the basic block addresses executed by the state.
         list_addrs = state.history.bbl_addrs.hardcopy
         # converts addresses from decimal to hex
-        list_addrs = list(map(lambda value: hex(value), list_addrs))
+        list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
         list_guards = [str(guard) for guard in state.history.jump_guards.hardcopy]
         list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
+        list_constraints = [str(const) for const in state.solver.constraints]
         print("\t- Path:\t\t", list_addrs)
+        print("\t- Path Length:\t\t", len(list_addrs))
+        print("\t- Path Constraints:\t\t", list_constraints)
         print("\t- Guards:\t", list_guards)
         print("\t- Observations:\t", list_obs)
         print("="*80)
+
         # append to dictionary for json output
+        if state.addr == assert_addr:
+            state_addr = "Assert failed"
+        else:
+            state_addr = hex(state.addr)
+        dict_state["addr"] = state_addr
         dict_state["path"] = list_addrs
         dict_state["guards"] = list_guards
+        dict_state["constraints"] = list_constraints
         dict_state["observations"] = list_obs
         output.append(dict_state.copy())
     if False:
@@ -132,7 +141,7 @@ def main():
     # executes the symbolic execution and prints the results
     simgr = proj.factory.simulation_manager(state)
     simgr.explore()
-    print_results(simgr.deadended, simgr.errored)
+    print_results(simgr.deadended, simgr.errored, extern_addr)
 
     #print("\n\nACTIONS:")
     #for action in simgr.deadended[0].history.actions.hardcopy:
