@@ -63,10 +63,11 @@ def mem_read_after(state):
 
 
 def add_bir_concretization_strategy(state, min_addr):
-    # minimum value where the concretization range starts
-    lower_mem_bound = 0xffffff456
+    state.memory.read_strategies.clear()
+    state.memory.write_strategies.clear()
+
     repeat_expr = claripy.BVS("REPEAT", 64)
-    bir_concr_strategy = SimConcretizationStrategyBIR(min_addr, lower_mem_bound, repeat_expr)
+    bir_concr_strategy = SimConcretizationStrategyBIR(min_addr, repeat_expr)
     state.memory.read_strategies.insert(0, bir_concr_strategy)
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
