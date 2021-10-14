@@ -12,6 +12,8 @@ parser.add_argument("program", help="BIR program path name", type=str)
 parser.add_argument("-ba", "--base_addr", help="The address to place the data in memory (default 0)", default=0, type=int)
 args = parser.parse_args()
 
+global track_concretization_values
+track_concretization_values = list()
 
 
 def set_registers(birprog):
@@ -40,18 +42,31 @@ def add_state_options(state):
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
-    # options to track memory access operations in the history of actions
-    #state.options.add(angr.options.TRACK_REGISTER_ACTIONS)
-    #state.options.add(angr.options.TRACK_MEMORY_ACTIONS)
+
+
+def address_concretization_after(state):
+    if state.inspect.address_concretization_result is not None:
+        value = (state.inspect.address_concretization_expr, state.inspect.address_concretization_result[0])
+        track_concretization_values.append(value)
+
+
+def mem_write_after(state):
+    mem_expr_arg = state.inspect.mem_write_address.__repr__(inner=True)
+    for expr, val in track_concretization_values:
+        if mem_expr_arg == hex(val):
+            raise ValueError(expr, val)
 
 
 def mem_read_after(state):
     #print("\nREAD")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
-
     mem_expr_arg = state.inspect.mem_read_expr.__repr__(inner=True)
-    print(mem_expr_arg)
+
+    for expr, val in track_concretization_values:
+        if mem_expr_arg == hex(val):
+            raise ValueError(expr, val)
+
     if state.inspect.mem_read_expr.symbolic and mem_expr_arg.count("mem_"):
         mem_addr = state.inspect.mem_read_address
         mem_val = state.inspect.mem_read_expr
@@ -59,7 +74,7 @@ def mem_read_after(state):
         mem_expr = mem_var == mem_val
         state.add_constraints(mem_expr)
         state.inspect.mem_read_expr = mem_var
-    print(state.inspect.mem_read_expr)
+    #print(state.inspect.mem_read_expr)
 
 
 def add_bir_concretization_strategy(state, min_addr):
@@ -89,9 +104,8 @@ def print_results(final_states, errored_states, assert_addr, dump_json=True):
         list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
         list_constraints = [str(const) for const in state.solver.constraints]
         print("\t- Path:\t\t", list_addrs)
-        print("\t- Path Length:\t\t", len(list_addrs))
-        print("\t- Path Constraints:\t\t", list_constraints)
         print("\t- Guards:\t", list_guards)
+        print("\t- Path Constraints:\t\t", list_constraints)
         print("\t- Observations:\t", list_obs)
         print("="*80)
 
@@ -116,6 +130,7 @@ def print_results(final_states, errored_states, assert_addr, dump_json=True):
         print(json_object)
 
 
+
 def main():
     # extracts the registers from the input program and sets them in the register list of the architecture
     regs = set_registers(args.program)
@@ -134,18 +149,29 @@ def main():
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+    state.inspect.b('mem_write', when=angr.BP_AFTER, action=mem_write_after)
+    state.inspect.b('address_concretization', when=angr.BP_AFTER, action=address_concretization_after)
 
     # adds a concretization strategy with some constraints for a bir program
     add_bir_concretization_strategy(state, proj.loader.max_addr)
 
-    # executes the symbolic execution and prints the results
-    simgr = proj.factory.simulation_manager(state)
-    simgr.explore()
-    print_results(simgr.deadended, simgr.errored, extern_addr)
+    concretization_constraints = []
+    while True:
+        for expr, val in concretization_constraints:
+            constarint = claripy.Not(expr == val)
+            state.add_constraints(constarint)
+        track_concretization_values.clear()
+        try:
+            # executes the symbolic execution and prints the results
+            simgr = proj.factory.simulation_manager(state)
+            simgr.explore()
+            print_results(simgr.deadended, simgr.errored, extern_addr)
+        except ValueError as e:
+            concretization_constraints.append(e.args)
+            print("EXCEPTION CONCRETIZATION COLLISION: ", e)
+        else:
+            break
 
-    #print("\n\nACTIONS:")
-    #for action in simgr.deadended[0].history.actions.hardcopy:
-    #    print(action)
 
 
 
