@@ -13,7 +13,7 @@ parser.add_argument("-ba", "--base_addr", help="The address to place the data in
 args = parser.parse_args()
 
 global track_concretization_values
-track_concretization_values = list()
+track_concretization_values = set()
 
 
 def set_registers(birprog):
@@ -47,7 +47,7 @@ def add_state_options(state):
 def address_concretization_after(state):
     if state.inspect.address_concretization_result is not None:
         value = (state.inspect.address_concretization_expr, state.inspect.address_concretization_result[0])
-        track_concretization_values.append(value)
+        track_concretization_values.add(value)
 
 
 def mem_write_after(state):
@@ -88,6 +88,13 @@ def add_bir_concretization_strategy(state, min_addr):
 
 
 def print_results(final_states, errored_states, assert_addr, dump_json=True):
+    def get_path_constraints(state):
+        path_constraints_first_filtering = [const for const in state.solver.constraints if not str(const).count("mem_" and "==" and "MEM")]
+        path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
+        list_constraints = path_constraints_second_filtering + state.history.jump_guards.hardcopy
+        list_constraints = [str(const) for const in list_constraints if str(const) != "<Bool True>"]
+        return list_constraints
+
     print("\n\n")
     print(f"RESULT: {len(final_states)} final states")
 
@@ -100,11 +107,9 @@ def print_results(final_states, errored_states, assert_addr, dump_json=True):
         list_addrs = state.history.bbl_addrs.hardcopy
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
-        list_guards = [str(guard) for guard in state.history.jump_guards.hardcopy]
+        list_constraints = get_path_constraints(state)
         list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
-        list_constraints = [str(const) for const in state.solver.constraints]
         print("\t- Path:\t\t", list_addrs)
-        print("\t- Guards:\t", list_guards)
         print("\t- Path Constraints:\t\t", list_constraints)
         print("\t- Observations:\t", list_obs)
         print("="*80)
