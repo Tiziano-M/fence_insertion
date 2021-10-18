@@ -50,10 +50,10 @@ def address_concretization_after(state):
         track_concretization_values.add(value)
 
 
-def mem_write_after(state):
-    mem_expr_arg = state.inspect.mem_write_address.__repr__(inner=True)
+def mem_write_before(state):
+    mem_addr_arg = state.inspect.mem_write_address.__repr__(inner=True)
     for expr, val in track_concretization_values:
-        if mem_expr_arg == hex(val):
+        if mem_addr_arg == hex(val):
             raise ValueError(expr, val)
 
 
@@ -61,12 +61,13 @@ def mem_read_after(state):
     #print("\nREAD")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
-    mem_expr_arg = state.inspect.mem_read_expr.__repr__(inner=True)
+    mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
 
     for expr, val in track_concretization_values:
-        if mem_expr_arg == hex(val):
+        if mem_addr_arg == hex(val):
             raise ValueError(expr, val)
 
+    mem_expr_arg = state.inspect.mem_read_expr.__repr__(inner=True)
     if state.inspect.mem_read_expr.symbolic and mem_expr_arg.count("mem_"):
         mem_addr = state.inspect.mem_read_address
         mem_val = state.inspect.mem_read_expr
@@ -87,11 +88,12 @@ def add_bir_concretization_strategy(state, min_addr):
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(final_states, errored_states, assert_addr, dump_json=True):
-    def get_path_constraints(state):
-        path_constraints_first_filtering = [const for const in state.solver.constraints if not str(const).count("mem_" and "==" and "MEM")]
+def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True):
+    def get_path_constraints(state_constraints, list_guards, concretization_constraints):
+        path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
         path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
-        list_constraints = path_constraints_second_filtering + state.history.jump_guards.hardcopy
+        path_constraints_third_filtering = [const for const in path_constraints_second_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in concretization_constraints)]
+        list_constraints = path_constraints_third_filtering + list_guards
         list_constraints = [str(const) for const in list_constraints if str(const) != "<Bool True>"]
         return list_constraints
 
@@ -107,7 +109,7 @@ def print_results(final_states, errored_states, assert_addr, dump_json=True):
         list_addrs = state.history.bbl_addrs.hardcopy
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
-        list_constraints = get_path_constraints(state)
+        list_constraints = get_path_constraints(state.solver.constraints, state.history.jump_guards.hardcopy, concretization_constraints)
         list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
         print("\t- Path:\t\t", list_addrs)
         print("\t- Path Constraints:\t\t", list_constraints)
@@ -117,11 +119,11 @@ def print_results(final_states, errored_states, assert_addr, dump_json=True):
         # append to dictionary for json output
         if state.addr == assert_addr:
             state_addr = "Assert failed"
+            continue
         else:
             state_addr = hex(state.addr)
         dict_state["addr"] = state_addr
         dict_state["path"] = list_addrs
-        dict_state["guards"] = list_guards
         dict_state["constraints"] = list_constraints
         dict_state["observations"] = list_obs
         output.append(dict_state.copy())
@@ -154,7 +156,7 @@ def main():
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
-    state.inspect.b('mem_write', when=angr.BP_AFTER, action=mem_write_after)
+    state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
     state.inspect.b('address_concretization', when=angr.BP_AFTER, action=address_concretization_after)
 
     # adds a concretization strategy with some constraints for a bir program
