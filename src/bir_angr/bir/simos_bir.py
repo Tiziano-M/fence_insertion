@@ -21,20 +21,23 @@ class Accumulate(SimProcedure):
         #print(self.state.observations.accumulate.list_obs)
 
 
+
 class Observation(SimProcedure):
     """
     Stores the observations by fetching them into the accumulator and then resets it.
     """
-    num_args = 1
-    NUM_ARGS = 1
+    num_args = 2
+    NUM_ARGS = 2
 
-    def run(self, idx):
+    def run(self, obs, idx):
         obss = self.state.observations.accumulate.list_obs.copy()
-        idx_obss = (idx.ast.args[0], obss)
-        self.state.observations.append(idx_obss)
+        cond_obs = self.state.regs.cond_obs[0]
+        idx_cond_obss = (idx.ast.args[0], cond_obs, obss)
+        self.state.observations.append(idx_cond_obss)
         self.state.observations.accumulate.list_obs.clear()
         #print(self.state.observations.accumulate.list_obs)
         #print(self.state.observations.list_obs)
+        self.state.regs.cond_obs = 0
 
 
 
@@ -68,7 +71,7 @@ class SimBIR(SimUserland):
 
 
 class SimBIRSyscall(SimCC):
-    ARG_REGS = ['obs'] # A list of all the registers used for integral args to be passed in procedures
+    ARG_REGS = ['obs', 'idx_obs'] # A list of all the registers used for integral args to be passed in procedures
     RETURN_ADDR = SimRegArg('ip_at_syscall', 8)
     #RETURN_VAL = SimRegArg('obs', 8)
     ARCH = ArchBIR

@@ -77,9 +77,20 @@
         "stmttype": "BStmt_Observe",
         "id": "0",
         "cnd": {
-          "exptype": "BExp_Const",
-          "val": 1,
-          "sz": 1
+          "exptype": "BExp_BinPred",
+            "type": "BIExp_LessThan",
+            "exp1": {
+              "exptype": "BExp_Den",
+              "var": {
+                "name": "R21",
+                "type": "imm64"
+              }
+            },
+            "exp2": {
+              "exptype": "BExp_Const",
+              "val": 2148794240,
+              "sz": 64
+            }
         },
         "obss": [
           {

@@ -28,6 +28,8 @@ class Instruction_ASSIGN(BIR_Instruction):
         val = self.get_argument2()
         if not val:
             return
+        if val.ty == Type.int_1:
+            val = val.cast_to(Type.int_8)
         reg = self.get_argument1()
         self.put(val, reg)
 
@@ -248,7 +250,7 @@ class Instruction_BINPRED(BIR_Instruction):
         elif self.block["type"] == "BIExp_SignedLessOrEqual":
             val = val1 <= val2
             val.is_signed = True
-        return val
+        return val.cast_to(Type.int_1)
 
 
 class Instruction_DEN(BIR_Instruction):
@@ -304,7 +306,7 @@ class Instruction_CONST(BIR_Instruction):
         elif (ty == 8):
     	    ty = Type.int_8
         elif (ty == 1):
-    	    ty = Type.int_8
+    	    ty = Type.int_1
         return ty
 
     def compute_result(self):
@@ -399,20 +401,24 @@ class Instruction_OBSERVE(BIR_Instruction):
         return idx
 
     def compute_result(self):
-        idx = self.get_idx()
-        condition = self.map_expressions(self.block["cnd"], self.irsb_c)
-     
         # to match the system call with 1 of 'accumulate'
         self.put(self.constant(1, Type.int_64), 'syscall_num')
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
             self.put(obs, 'obs')
-            self.jump(condition, self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+            self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
         # to match the system call with 0 of 'observation'
         self.put(self.constant(0, Type.int_64), 'syscall_num')
-        self.put(self.constant(idx, Type.int_64), 'obs')
-        self.jump(condition, self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+        idx = self.get_idx()
+        condition = self.map_expressions(self.block["cnd"], self.irsb_c)
+        if condition.ty == Type.int_1:
+            condition = condition.cast_to(Type.int_8)
+        else:
+            raise Exception("condition in Observe statement is not well-typed")
+        self.put(condition, 'cond_obs')
+        self.put(self.constant(idx, Type.int_64), 'idx_obs')
+        self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):

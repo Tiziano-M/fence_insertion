@@ -37,7 +37,7 @@ def get_register_list(birprog):
     # reorders the list
     regs = sorted(regs, key=lambda k: k['name'])
     
-    vex_offset = 24
+    vex_offset = 40
     for reg in regs:
         if reg["type"] == "imm64":
             sz = 8
@@ -74,8 +74,10 @@ class ArchBIR(Arch):
     register_list = [
         Register(name="ip", size=8, alias_names=('pc'), vex_offset=0),
         Register(name="obs", size=8, vex_offset=8),
-        Register(name="ip_at_syscall", size=8, vex_offset=16),
-        Register(name="syscall_num", size=8, vex_offset=24)
+        Register(name="cond_obs", size=1, vex_offset=16),
+        Register(name="idx_obs", size=8, vex_offset=24),
+        Register(name="ip_at_syscall", size=8, vex_offset=32),
+        Register(name="syscall_num", size=8, vex_offset=40)
     ]
 
 
