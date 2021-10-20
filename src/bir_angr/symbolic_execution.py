@@ -89,12 +89,11 @@ def add_bir_concretization_strategy(state, min_addr):
 
 
 def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True):
-    def get_path_constraints(state_constraints, list_guards, concretization_constraints):
+    def get_path_constraints(state_constraints, concretization_constraints):
         path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
         path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
         path_constraints_third_filtering = [const for const in path_constraints_second_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in concretization_constraints)]
-        list_constraints = path_constraints_third_filtering + list_guards
-        list_constraints = [str(const) for const in list_constraints if str(const) != "<Bool True>"]
+        list_constraints = [str(const) for const in path_constraints_third_filtering]
         return list_constraints
 
     print("\n\n")
@@ -109,11 +108,11 @@ def print_results(final_states, errored_states, assert_addr, concretization_cons
         list_addrs = state.history.bbl_addrs.hardcopy
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
-        list_constraints = get_path_constraints(state.solver.constraints, state.history.jump_guards.hardcopy, concretization_constraints)
-        list_obs = [(idx, [str(obs) for obs in obss]) for idx, obss in state.observations.list_obs]
-        print("\t- Path:\t\t", list_addrs)
-        print("\t- Path Constraints:\t\t", list_constraints)
-        print("\t- Observations:\t", list_obs)
+        list_constraints = get_path_constraints(state.solver.constraints, concretization_constraints)
+        list_obs = [(idx, str(cond), [str(obs) for obs in obss]) for idx, cond, obss in state.observations.list_obs]
+        print("\t- Path:\t\t\t", list_addrs)
+        print("\t- Path Constraints:\t", list_constraints)
+        print("\t- Observations:\t\t", list_obs)
         print("="*80)
 
         # append to dictionary for json output
@@ -172,7 +171,7 @@ def main():
             # executes the symbolic execution and prints the results
             simgr = proj.factory.simulation_manager(state)
             simgr.explore()
-            print_results(simgr.deadended, simgr.errored, extern_addr)
+            print_results(simgr.deadended, simgr.errored, extern_addr, concretization_constraints)
         except ValueError as e:
             concretization_constraints.append(e.args)
             print("EXCEPTION CONCRETIZATION COLLISION: ", e)

@@ -23,7 +23,6 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                 extra_constraints = self._repeat_constraints + [ addr == self._repeat_expr ] + addr_constraint
             )
         except SimUnsatError as e:
-            print(type(e), e)
             c = self._any(
                 memory, addr,
                 extra_constraints = addr_constraint
