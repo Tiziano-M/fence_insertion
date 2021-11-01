@@ -21,6 +21,12 @@ replacements = {}
 
 
 
+
+def change_simplification():
+    from bir_angr.bir.simplification_manager_bir import SimplificationManagerBIR
+    claripy.simplifications.simpleton = SimplificationManagerBIR()
+
+
 def set_registers(birprog):
     regs = bir_angr.bir.arch_bir.get_register_list(birprog)
     return regs
@@ -133,7 +139,7 @@ def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr):
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True, debug_out=True):
+def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True, debug_out=False):
     def get_path_constraints(state_constraints, concretization_constraints):
         path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
         path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
@@ -197,7 +203,7 @@ def main():
     bir_angr.bir.lift_bir.set_extern_addr(extern_addr)
 
     # sets the initial state and registers
-    state = proj.factory.entry_state(addr=args.base_addr)
+    state = proj.factory.entry_state(addr=args.base_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
     add_state_options(state)
 
