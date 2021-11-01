@@ -163,7 +163,10 @@ class Instruction_STORE(BIR_Instruction):
 
     def compute_result(self):
         addr_val = self.map_expressions(self.block["addr"], self.irsb_c)
+
         val = self.map_expressions(self.block["val"], self.irsb_c)
+        if val.ty == Type.int_1:
+            val = val.cast_to(Type.int_8)
 
         self.store(val, addr_val)
 
@@ -445,8 +448,8 @@ class Instruction_CJMP(BIR_Instruction):
         val1 = self.map_label_expressions(self.block["lblt"], self.irsb_c)
         val2 = self.map_label_expressions(self.block["lblf"], self.irsb_c)
 
-        self.addr = int(str(val1.rdt), 16)
-        self.jump(condition, val2)
+        self.addr = int(str(val2.rdt), 16)
+        self.jump(condition, val1)
 
 
 class Instruction_HALT(BIR_Instruction):

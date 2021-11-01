@@ -88,7 +88,7 @@ def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr):
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True):
+def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True, debug_out=True):
     def get_path_constraints(state_constraints, concretization_constraints):
         path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
         path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
@@ -110,10 +110,13 @@ def print_results(final_states, errored_states, assert_addr, concretization_cons
         list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
         list_constraints = get_path_constraints(state.solver.constraints, concretization_constraints)
         list_obs = [(idx, str(cond), [str(obs) for obs in obss]) for idx, cond, obss in state.observations.list_obs]
-        print("\t- Path:\t\t\t", list_addrs)
-        print("\t- Path Constraints:\t", list_constraints)
-        print("\t- Observations:\t\t", list_obs)
-        print("="*80)
+        if debug_out:
+            print("\t- Path:", ''.join("\n\t\t{0}".format(addr) for addr in list_addrs))
+            print("\t- Guards:", ''.join("\n\t\t{0}".format(str(g)) for g in state.history.jump_guards.hardcopy))
+            print("\t- State Constraints:", ''.join("\n\t\t\t{0}".format(str(sc)) for sc in state.solver.constraints))
+            print("\t- Path Constraints:\t", ''.join("\n\t\t\t{0}".format(c) for c in list_constraints))
+            print("\t- Observations:\t\t", ''.join("\n\t\t\t{0}".format(o) for o in list_obs))
+            print("="*80)
 
         # append to dictionary for json output
         if state.addr == assert_addr:
