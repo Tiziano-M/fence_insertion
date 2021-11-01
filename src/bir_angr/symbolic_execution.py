@@ -78,12 +78,12 @@ def mem_read_after(state):
     #print(state.inspect.mem_read_expr)
 
 
-def add_bir_concretization_strategy(state, min_addr):
+def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr):
     state.memory.read_strategies.clear()
     state.memory.write_strategies.clear()
 
     repeat_expr = claripy.BVS("REPEAT", 64)
-    bir_concr_strategy = SimConcretizationStrategyBIR(min_addr, repeat_expr)
+    bir_concr_strategy = SimConcretizationStrategyBIR(prog_min_addr, prog_max_addr, repeat_expr)
     state.memory.read_strategies.insert(0, bir_concr_strategy)
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
@@ -159,7 +159,7 @@ def main():
     state.inspect.b('address_concretization', when=angr.BP_AFTER, action=address_concretization_after)
 
     # adds a concretization strategy with some constraints for a bir program
-    add_bir_concretization_strategy(state, proj.loader.max_addr)
+    add_bir_concretization_strategy(state, proj.loader.min_addr, proj.loader.max_addr)
 
     concretization_constraints = []
     while True:
