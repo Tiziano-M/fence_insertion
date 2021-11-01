@@ -12,8 +12,13 @@ parser.add_argument("program", help="BIR program path name", type=str)
 parser.add_argument("-ba", "--base_addr", help="The address to place the data in memory (default 0)", default=0, type=int)
 args = parser.parse_args()
 
-global track_concretization_values
+
+# stores concretization values for collision checking
 track_concretization_values = set()
+# maps memory read values for replacement
+replacements = {}
+
+
 
 
 def set_registers(birprog):
@@ -57,8 +62,8 @@ def mem_write_before(state):
             raise ValueError(expr, val)
 
 
-def mem_read_after(state):
-    #print("\nREAD")
+def mem_read_after_approx(state):
+    #print("\nREAD APPROX")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
     mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
@@ -76,6 +81,46 @@ def mem_read_after(state):
         state.add_constraints(mem_expr)
         state.inspect.mem_read_expr = mem_var
     #print(state.inspect.mem_read_expr)
+
+
+def mem_read_after(state):
+    #print("\nREAD")
+    #print(state.inspect.mem_read_address)
+    #print(state.inspect.mem_read_expr)
+
+    mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
+    for expr, val in track_concretization_values:
+        if mem_addr_arg == hex(val):
+            raise ValueError(expr, val)
+
+    if state.inspect.mem_read_expr.symbolic and state.inspect.mem_read_expr.uninitialized:
+        mem_addr = state.inspect.mem_read_address
+        mem_ast_set = set()
+
+        if state.inspect.mem_read_expr.op == "BVS" and state.inspect.mem_read_expr.args[0].startswith("mem_"):
+            mem_ast_set.add(state.inspect.mem_read_expr)
+        else:
+            iterator_ast = state.inspect.mem_read_expr.children_asts()
+            while True:
+                try:
+                    subast = iterator_ast.__next__()
+                except StopIteration:
+                    break
+                else:
+                    if subast.op == "BVS" and subast.args[0].startswith("mem_"):
+                        mem_ast_set.add(subast)
+
+        for mem_ast in mem_ast_set:
+            if not mem_ast.cache_key in replacements:
+                mem_var = claripy.BVS(f"MEM[{mem_addr}]", mem_ast.length)
+                replacements[mem_ast.cache_key] = mem_var
+                mem_expr_constraint = mem_var == mem_ast
+                state.add_constraints(mem_expr_constraint)
+
+        state.inspect.mem_read_expr = state.inspect.mem_read_expr.replace_dict(replacements)
+
+    #print(state.inspect.mem_read_expr)
+    #print()
 
 
 def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr):
