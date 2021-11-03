@@ -166,7 +166,7 @@ class Instruction_STORE(BIR_Instruction):
 
         val = self.map_expressions(self.block["val"], self.irsb_c)
         if val.ty == Type.int_1:
-            val = val.cast_to(Type.int_8)
+            raise Exception("BIR Store expression is attempting to store 1 bit.")
 
         self.store(val, addr_val)
 

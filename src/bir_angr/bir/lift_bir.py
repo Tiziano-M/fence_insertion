@@ -29,7 +29,7 @@ def set_extern_addr(addr):
 
 class LifterBIR(Lifter):
     REQUIRE_DATA_PY = True
-    lifter.VEX_IRSB_MAX_SIZE = 2000000
+    lifter.VEX_IRSB_MAX_SIZE = sys.maxsize
     #lifter.VEX_IRSB_MAX_INST = 99
 
     cache_lifting = None

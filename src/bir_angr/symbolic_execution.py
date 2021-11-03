@@ -1,3 +1,4 @@
+import sys
 import argparse
 import json
 
@@ -72,8 +73,8 @@ def mem_read_after_approx(state):
     #print("\nREAD APPROX")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
-    mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
 
+    mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
     for expr, val in track_concretization_values:
         if mem_addr_arg == hex(val):
             raise ValueError(expr, val)
@@ -144,7 +145,7 @@ def print_results(final_states, errored_states, assert_addr, concretization_cons
         path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
         path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
         path_constraints_third_filtering = [const for const in path_constraints_second_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in concretization_constraints)]
-        list_constraints = [str(const) for const in path_constraints_third_filtering]
+        list_constraints = [const.shallow_repr(max_depth=sys.maxsize, explicit_length=True) for const in path_constraints_third_filtering]
         return list_constraints
 
     print("\n\n")
@@ -160,7 +161,7 @@ def print_results(final_states, errored_states, assert_addr, concretization_cons
         # converts addresses from decimal to hex
         list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
         list_constraints = get_path_constraints(state.solver.constraints, concretization_constraints)
-        list_obs = [(idx, str(cond), [str(obs) for obs in obss]) for idx, cond, obss in state.observations.list_obs]
+        list_obs = [(idx, cond.shallow_repr(max_depth=sys.maxsize, explicit_length=True), [obs.shallow_repr(max_depth=sys.maxsize, explicit_length=True) for obs in obss]) for idx, cond, obss in state.observations.list_obs]
         if debug_out:
             print("\t- Path:", ''.join("\n\t\t{0}".format(addr) for addr in list_addrs))
             print("\t- Guards:", ''.join("\n\t\t{0}".format(str(g)) for g in state.history.jump_guards.hardcopy))
