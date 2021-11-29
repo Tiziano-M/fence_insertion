@@ -16,14 +16,12 @@ l = logging.getLogger(__name__)
 
 def cleanup_cache_lifting():
     # Resets the IRSB dictionary in order to execute the lifting of a new program.
-    # There is another static value (obs_dst) in IRSBSplitter,
-    # but there is no need to reset it, as it is updated by one each time it is used.
     LifterBIR.cache_lifting = None
 
 
-def set_extern_addr(addr):
+def set_extern_val(addr, dump_irsb):
     LifterBIR.extern_addr = addr
-
+    LifterBIR._dump_irsb = dump_irsb
 
 
 
@@ -34,6 +32,7 @@ class LifterBIR(Lifter):
 
     cache_lifting = None
     extern_addr = None
+    _dump_irsb = None
 
     def prelift(self, dump_irsb=False):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
@@ -66,7 +65,7 @@ class LifterBIR(Lifter):
         except:
             l.error("Pre-lifting Error: Block Address {:#x}".format(block.label))
             raise LiftingException('Could not decode any instructions')
-        print("Pre-Lifting: Done!\n")
+        print("I - Pre-Lifting: Done!\n")
         return dict_irsb
 
     def get_irsbs(self):
@@ -75,7 +74,7 @@ class LifterBIR(Lifter):
             LifterBIR.cache_lifting = self.prelift()
         return LifterBIR.cache_lifting
 
-    def lift(self, dump_irsb=True):
+    def lift(self):
         try:
             irsbs = self.get_irsbs()
 
@@ -85,8 +84,6 @@ class LifterBIR(Lifter):
                 # 2 way to manage the exit
                 #if not any(key == int(str(self.irsb.next), 16) for key in irsbs):
                 #    self.irsb.jumpkind = JumpKind.Exit
-            elif self.addr == 0x400:
-                self.irsb.jumpkind = JumpKind.NoDecode
             else:
                 irsb_c = IRSBCustomizer(self.irsb)
                 irsb_c.imark(self.addr, 1, 0)
@@ -95,7 +92,7 @@ class LifterBIR(Lifter):
             print(sys.exc_info()[0])
             self.errors = str(e)
             l.exception("Error decoding block at (address {:#x}):".format(self.addr))
-        if dump_irsb:
+        if LifterBIR._dump_irsb:
             self.irsb.pp()
         return self.irsb
         

@@ -92,19 +92,22 @@ class Instruction_BINEXP(BIR_Instruction):
         elif operator == "BIExp_Div":
             val = operand1 // operand2
         elif operator == "BIExp_SignedDiv":
-            val = operand1 / operand2
+            val = operand1.signed // operand2.signed
+            # or also
+            #val = self.irsb_c.op_sdiv(operand1.rdt, operand2.rdt)
+            #val = VexValue(self.irsb_c, val)
         elif operator == "BIExp_Mod":
             val = operand1 % operand2
         elif operator == "BIExp_SignedMod":
-            val = operand1 % operand2
-            val.is_signed = True
+            # FIX: no way to handle signed mod
+            val = operand1.signed % operand2.signed
         elif operator == "BIExp_LeftShift":
             val = operand1 << operand2.cast_to(Type.int_8)
         elif operator == "BIExp_RightShift":
             val = operand1 >> operand2.cast_to(Type.int_8)
         elif operator == "BIExp_SignedRightShift":
-            val = operand1 >> operand2.cast_to(Type.int_8)
-            val.is_signed = True
+            # FIX: no way to handle signed shift
+            val = operand1.signed >> operand2.cast_to(Type.int_8, signed=True).signed
         return val
 
 
@@ -218,7 +221,7 @@ class Instruction_UNARY(BIR_Instruction):
         val = self.map_expressions(self.block["exp"], self.irsb_c)
 
         if self.block["type"] == "BIExp_ChangeSign":
-            raise Exception("BIExp_ChangeSign found!")
+            val = val * -1
         elif self.block["type"] == "BIExp_Not":
             val = ~val
         elif self.block["type"] == "BIExp_CLZ":
@@ -246,13 +249,14 @@ class Instruction_BINPRED(BIR_Instruction):
         elif self.block["type"] == "BIExp_LessThan":
             val = val1 < val2
         elif self.block["type"] == "BIExp_SignedLessThan":
-            val = val1 < val2
-            val.is_signed = True
+            val = val1.signed < val2.signed
+            # or also
+            #val = self.irsb_c.op_cmp_slt(val1.rdt, val2.rdt)
+            #val = VexValue(self.irsb_c, val)
         elif self.block["type"] == "BIExp_LessOrEqual":
             val = val1 <= val2
         elif self.block["type"] == "BIExp_SignedLessOrEqual":
-            val = val1 <= val2
-            val.is_signed = True
+            val = val1.signed <= val2.signed
         return val.cast_to(Type.int_1)
 
 

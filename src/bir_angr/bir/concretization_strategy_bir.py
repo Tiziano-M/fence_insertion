@@ -20,16 +20,18 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             addr_constraint = [ claripy.Or(claripy.UGT(addr, self._prog_max_addr), claripy.ULT(addr, self._prog_min_addr)) ]
         else:
             addr_constraint = [ claripy.UGT(addr, self._prog_max_addr) ]
+        # concretize in the middle
+        addr_constraint2 = [ claripy.UGT(addr, 0x40000000), claripy.ULT(addr, 0xbffffffffffffffe) ]
 
         try:
             c = self._any(
                 memory, addr,
-                extra_constraints = self._repeat_constraints + [ addr == self._repeat_expr ] + addr_constraint
+                extra_constraints = self._repeat_constraints + [ addr == self._repeat_expr ] + addr_constraint + addr_constraint2
             )
         except SimUnsatError:
             c = self._any(
                 memory, addr,
-                extra_constraints = addr_constraint
+                extra_constraints = addr_constraint + addr_constraint2
             )
         self._repeat_constraints.append(self._repeat_expr != c)
         return [ c ]

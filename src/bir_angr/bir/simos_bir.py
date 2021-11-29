@@ -16,7 +16,7 @@ class Accumulate(SimProcedure):
     NUM_ARGS = 1
 
     def run(self, obs):
-        print("\nObservation:", obs, "\n")
+        ''' print("\nObservation:", obs, "\n") '''
         self.state.observations.accumulate.append(obs)
         #print(self.state.observations.accumulate.list_obs)
 
