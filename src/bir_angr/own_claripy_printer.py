@@ -159,7 +159,7 @@ def str_claripy_with_extreme_parenthesis(e):
       return f"if {args[0]} then {args[1]} else {args[2]}"
     # logical right shift, if-then-else expression
     elif e.op == "LShR":
-      str_fun_op(e.op, 2)
+      return str_fun_op(e, 2)
     else:
       raise Exception(f'unknown operation: "{e.op}" - ({e})')
   except AssertionError:
