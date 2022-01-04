@@ -5,7 +5,7 @@ import json
 import angr
 import bir_angr.bir
 import claripy
-from bir_angr.own_claripy_printer import own_bv_str
+from bir_angr.utils.own_claripy_printer import own_bv_str
 from bir_angr.bir.concretization_strategy_bir import SimConcretizationStrategyBIR
 
 
@@ -28,7 +28,7 @@ replacements = {}
 
 
 def change_simplification():
-    from bir_angr.bir.simplification_manager_bir import SimplificationManagerBIR
+    from bir_angr.utils.simplification_manager_bir import SimplificationManagerBIR
     claripy.simplifications.simpleton = SimplificationManagerBIR()
 
 
