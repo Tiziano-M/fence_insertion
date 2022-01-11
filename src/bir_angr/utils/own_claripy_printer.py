@@ -20,6 +20,22 @@ import angr
 #e = e1 + (claripy.Extract(7, 0, e2 + e3))
 #e =claripy.Extract(12, 0, claripy.Concat(claripy.BVS("x", 8), ((e2 + e3)))) + (claripy.Extract(15, 0, e2 + e3))
 
+#e1 = claripy.BVS("z", 32)
+#e2 = claripy.BVV(0x1, 32)
+#e3 = claripy.BVS("y", 32)
+#e4 = claripy.BVS("x", 32)
+#e = e1%e2%e3%e1
+#e = (e2 == e3)
+#e = claripy.Concat(claripy.Concat(claripy.Concat(e1,e2),e3),e4)
+#e = e1<<e2<<e3<<e4
+
+#e1 = claripy.BoolS("z")
+#e2 = claripy.BoolV(0x1)
+#e3 = claripy.BoolS("y")
+#e4 = claripy.BoolS("z")
+#e = claripy.And(claripy.And(claripy.And(e1,e2),e3),e1)
+#e = claripy.Or(e1,e3, e4)
+
 
 def str_claripy_with_extreme_parenthesis(e):
   def check_claripy_type(e):
@@ -30,20 +46,25 @@ def str_claripy_with_extreme_parenthesis(e):
   def mapargs(args):
     return list(map(str_claripy_type, args))
   #
-  def str_infix_binop(e, opstr):
+  def str_infix_naryop(e, opstr, n = None):
     argsraw = list(e.args)
-    assert len(argsraw) == 2
+    assert len(argsraw) >= 2
+    if n != None:
+      assert len(argsraw) == n
     #print(list(map(type,argsraw)))
     assert (all(map(check_claripy_type, argsraw)))
     args = mapargs(argsraw)
-    return f"({args[0]}) {opstr} ({args[1]})"
+    return (f" {opstr} ").join(map(lambda x: f"({x})", args))
+  #
+  def str_infix_binop(e, opstr):
+    return str_infix_naryop(e, opstr, 2)
   #
   def str_prefix_unop(e, opstr):
     argsraw = list(e.args)
     assert len(argsraw) == 1
     assert (all(map(check_claripy_type, argsraw)))
     args = mapargs(argsraw)
-    return f"{opstr} ({args[0]})"
+    return f"{opstr}({args[0]})"
   #
   def str_fun_op(e, arglen):
     argsraw = list(e.args)
@@ -62,19 +83,19 @@ def str_claripy_with_extreme_parenthesis(e):
       return e.args[0]
     # binop infix
     elif e.op == "__add__":
-      return str_infix_binop(e, "+")
+      return str_infix_naryop(e, "+")
     elif e.op == "__sub__":
-      return str_infix_binop(e, "-")
+      return str_infix_naryop(e, "-")
     elif e.op == "__mul__":
-      return str_infix_binop(e, "*")
+      return str_infix_naryop(e, "*")
     elif e.op == "__xor__":
-      return str_infix_binop(e, "^")
+      return str_infix_naryop(e, "^")
     elif e.op == "__mod__":
       return str_infix_binop(e, "%")
     elif e.op == "__and__":
-      return str_infix_binop(e, "&")
+      return str_infix_naryop(e, "&")
     elif e.op == "__or__":
-      return str_infix_binop(e, "|")
+      return str_infix_naryop(e, "|")
     elif e.op == "__floordiv__":
       return str_infix_binop(e, "/")
     elif e.op == "__eq__":
@@ -90,11 +111,11 @@ def str_claripy_with_extreme_parenthesis(e):
     elif e.op == "__ge__":
       return str_infix_binop(e, ">=")
     elif e.op == "And":
-      return str_infix_binop(e, "&&")
+      return str_infix_naryop(e, "&&")
     elif e.op == "Or":
-      return str_infix_binop(e, "||")
+      return str_infix_naryop(e, "||")
     elif e.op == "Concat":
-      return str_infix_binop(e, "..")
+      return str_infix_naryop(e, "..")
     elif e.op == "__lshift__":
       return str_infix_binop(e, "<<")
     elif e.op == "__rshift__":
@@ -119,11 +140,11 @@ def str_claripy_with_extreme_parenthesis(e):
       return str_infix_binop(e, "/s")
     # unary prefix
     elif e.op == "Not":
-      return str_infix_unop(e, "!")
+      return str_prefix_unop(e, "!")
     elif e.op == "__neg__":
-      return str_infix_unop(e, "-")
+      return str_prefix_unop(e, "-")
     elif e.op == "__invert__":
-      return str_infix_unop(e, "~")
+      return str_prefix_unop(e, "~")
     # masking
     elif e.op == "Extract":
       argsraw = list(e.args)
