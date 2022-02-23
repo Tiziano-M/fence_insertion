@@ -8,6 +8,8 @@ from .arch_bir import ArchBIR
 
 
 
+
+
 class Accumulate(SimProcedure):
     """
     Keeps the observations of an Observe statement.
@@ -32,7 +34,7 @@ class Observation(SimProcedure):
     def run(self, obs, idx):
         obss = self.state.observations.accumulate.list_obs.copy()
         cond_obs = self.state.regs.cond_obs[0]
-        idx_cond_obss = (idx.ast.args[0], cond_obs, obss)
+        idx_cond_obss = (idx.ast.args[0], cond_obs, obss, None)
         self.state.observations.append(idx_cond_obss)
         self.state.observations.accumulate.list_obs.clear()
         #print(self.state.observations.accumulate.list_obs)
@@ -41,16 +43,74 @@ class Observation(SimProcedure):
 
 
 
+class StartShadowBranch(SimProcedure):
+
+    num_args = 0
+    NUM_ARGS = 0
+
+    def run(self):
+        shadow_state = self.state.copy()
+        shadow_state.observations.accumulate.list_obs.clear()
+        shadow_state.observations.list_obs.clear()
+        n_constraints = len(shadow_state.solver.constraints)
+
+        self.successors.add_successor(shadow_state,
+                                      shadow_state.regs.ip_at_syscall,
+                                      shadow_state.solver.true, 'Ijk_Boring')
+
+
+        while True:
+            succ = shadow_state.step()
+            #print(hex(succ.addr))
+            if len(succ.successors) > 0:
+                # Note: is it enough? (e.g. conditional branch), otherwise we can write an Exploration Technique
+                shadow_state = succ.successors[-1]
+            else:
+                break
+
+        #print("ORIGINAL STATE", self.state, self.state.ip, self.state.regs.ip_at_syscall)
+        #print("SHADOW STATE", shadow_state, shadow_state.ip, shadow_state.regs.ip_at_syscall)
+
+
+        self.state.solver.constraints.extend(shadow_state.solver.constraints[n_constraints:])
+        self.state.observations.list_obs.extend((i,c,o,"shadow") for (i,c,o,s) in shadow_state.observations.list_obs)
+
+        self.jump(shadow_state.regs.ip_at_syscall)
+        succ = self.state.step()
+        #print(hex(self.state.addr))
+
+
+
+class EndShadowBranch(SimProcedure):
+
+    num_args = 0
+    NUM_ARGS = 0
+
+    def run(self):
+        self.exit(None)
+
+
+
+
+
+
+
+
 
 
 P['bir'] = {}
 P['bir']['observation'] = Observation
 P['bir']['accumulate'] = Accumulate
+P['bir']['start_shadow_branch'] = StartShadowBranch
+P['bir']['end_shadow_branch'] = EndShadowBranch
 
 syscall_lib = SimSyscallLibrary()
 syscall_lib.set_library_names('bir')
 syscall_lib.add_all_from_dict(P['bir'])
-syscall_lib.add_number_mapping_from_dict('BIR', {0 : 'observation', 1: 'accumulate'})
+syscall_lib.add_number_mapping_from_dict('BIR', {0: 'observation', 
+                                                 1: 'accumulate', 
+                                                 2: 'start_shadow_branch', 
+                                                 3: 'end_shadow_branch'})
 
 
 

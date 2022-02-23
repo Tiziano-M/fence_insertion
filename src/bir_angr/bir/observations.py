@@ -13,6 +13,25 @@ class SimStateObservations(SimStatePlugin):
     def set_state(self, state):
          super(SimStateObservations, self).set_state(state)
 
+    def merge(self, others, merge_conditions, common_ancestor=None): # pylint: disable=unused-argument
+        def check_obs_in_list(single_obs, list_obs):
+            check = False
+            for lo in list_obs:
+                if (single_obs[0] == lo[0] and 
+                    single_obs[1].structurally_match(lo[1]) and 
+                    any(sos.structurally_match(los) for sos in single_obs[2] for los in lo[2])):
+                    check = True
+                    break
+            return check
+
+
+        for other in others:
+            for o in other.list_obs:
+                if not check_obs_in_list(o, self.list_obs):
+                    self.list_obs.append(o)
+
+        return True
+
     def append(self, obs):
         self._backer.append(obs)
 

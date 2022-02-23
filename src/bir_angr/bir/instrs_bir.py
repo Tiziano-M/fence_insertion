@@ -17,8 +17,8 @@ class Instruction_ASSIGN(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def get_argument1(self):
-        REGISTER_NAME = self.block["var"]["name"]
-        return REGISTER_NAME
+        VAR_NAME = self.block["var"]["name"]
+        return VAR_NAME
 
     def get_argument2(self):
         val = self.map_expressions(self.block["exp"], self.irsb_c)
@@ -28,8 +28,13 @@ class Instruction_ASSIGN(BIR_Instruction):
         val = self.get_argument2()
         if not val:
             return
+        elif isinstance(val, str) and val == "MEM":
+            assert self.get_argument1() == "MEM*"
+            return
+
         if val.ty == Type.int_1:
             val = val.cast_to(Type.int_8)
+
         reg = self.get_argument1()
         self.put(val, reg)
 
@@ -46,6 +51,26 @@ class Instruction_ASSERT(BIR_Instruction):
         return val
 
     def compute_result(self):
+        if (self.block["exp"]["exptype"] == "BExp_BinPred"
+        and self.block["exp"]["type"] == "BIExp_Equal"
+        and self.block["exp"]["exp1"]["exptype"] == "BExp_Const"
+        and self.block["exp"]["exp2"]["exptype"] == "BExp_Const"):
+            if (self.block["exp"]["exp1"]["val"] == 41 and self.block["exp"]["exp2"]["val"] == 41):
+                self.put(self.constant(2, Type.int_64), 'syscall_num')
+                # the jump address is irrelevant here, it will be updated
+                self.jump(self.constant(1, Type.int_1), 
+                          self.constant(LifterBIR.extern_addr+1, Type.int_64), 
+                          jumpkind=JumpKind.Syscall)
+                return
+            elif (self.block["exp"]["exp1"]["val"] == 42 and self.block["exp"]["exp2"]["val"] == 42):
+                self.put(self.constant(3, Type.int_64), 'syscall_num')
+                # the jump address is irrelevant here, it will be updated
+                self.jump(self.constant(1, Type.int_1), 
+                          self.constant(LifterBIR.extern_addr+1, Type.int_64), 
+                          jumpkind=JumpKind.Syscall)
+                return
+
+
         condition = self.get_argument()
         to_addr = self.constant(LifterBIR.extern_addr, Type.int_64)
         negated_condition = self.ite(condition, self.constant(0, condition.ty), self.constant(1, condition.ty))
@@ -135,25 +160,25 @@ class Instruction_LOAD(BIR_Instruction):
         self.block = block
         self.irsb_c = irsb_c
 
-    def get_register_type(self):
-        REGISTER_TYPE_LOAD = self.block["sz"]
-        if (REGISTER_TYPE_LOAD == "Bit64"):
-    	    REGISTER_TYPE_LOAD = Type.int_64
-        elif (REGISTER_TYPE_LOAD == "Bit32"):
-    	    REGISTER_TYPE_LOAD = Type.int_32
-        elif (REGISTER_TYPE_LOAD == "Bit16"):
-    	    REGISTER_TYPE_LOAD = Type.int_16
-        elif (REGISTER_TYPE_LOAD == "Bit8"):
-    	    REGISTER_TYPE_LOAD = Type.int_8
-        elif (REGISTER_TYPE_LOAD == "Bit1"):
-    	    REGISTER_TYPE_LOAD = Type.int_1
-        return REGISTER_TYPE_LOAD
+    def get_load_size(self):
+        size = self.block["sz"]
+        if (size == "Bit64"):
+    	    size = Type.int_64
+        elif (size == "Bit32"):
+    	    size = Type.int_32
+        elif (size == "Bit16"):
+    	    size = Type.int_16
+        elif (size == "Bit8"):
+    	    size = Type.int_8
+        elif (size == "Bit1"):
+    	    size = Type.int_1
+        return size
 
     def compute_result(self):
-        REGISTER_TYPE_LOAD = self.get_register_type()
-        addr_val = self.map_expressions(self.block["addr"], self.irsb_c)
+        size = self.get_load_size()
+        addr = self.map_expressions(self.block["addr"], self.irsb_c)
 
-        val = self.load(addr_val, REGISTER_TYPE_LOAD)
+        val = self.load(addr, size)
         return val
 
 
@@ -165,13 +190,13 @@ class Instruction_STORE(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        addr_val = self.map_expressions(self.block["addr"], self.irsb_c)
+        addr = self.map_expressions(self.block["addr"], self.irsb_c)
 
         val = self.map_expressions(self.block["val"], self.irsb_c)
         if val.ty == Type.int_1:
             raise Exception("BIR Store expression is attempting to store 1 bit.")
 
-        self.store(val, addr_val)
+        self.store(val, addr)
 
 
 class Instruction_CAST(BIR_Instruction):
@@ -287,7 +312,11 @@ class Instruction_DEN(BIR_Instruction):
         return val
 
     def compute_result(self):
-        val = self.get_register(self.block["var"])
+        mem = self.block["var"]["name"]
+        if (mem == "MEM") or (mem == "MEM*"):
+            val = mem
+        else:
+            val = self.get_register(self.block["var"])
         return val
 
 
