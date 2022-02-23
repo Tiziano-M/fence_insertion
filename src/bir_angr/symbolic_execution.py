@@ -15,6 +15,7 @@ parser.add_argument("-ba", "--base_addr", help="The address to place the data in
 parser.add_argument('-es', "--error_states", help="Print error states", default=False, action='store_true')
 parser.add_argument('-do', "--debug_out", help="Print a more verbose version of the symbolic execution output", default=False, action='store_true')
 parser.add_argument('-di', "--dump_irsb", help="Print VEX blocks", default=False, action='store_true')
+parser.add_argument('-n', "--num_steps", help="Number of steps", default=None, type=int)
 args = parser.parse_args()
 
 
@@ -36,6 +37,7 @@ def set_cfg(proj):
     from angr.analyses.cfg import cfg_fast
     cfg_fast.VEX_IRSB_MAX_SIZE = sys.maxsize
 
+    #regions=[(proj.loader.main_object.min_addr,4197800+0x4)]
     cfg = proj.analyses.CFGFast(normalize=True, function_starts=[proj.loader.main_object.min_addr])
     return cfg
 
@@ -75,11 +77,15 @@ def address_concretization_after(state):
         track_concretization_values.add(value)
 
 
+def check_collision_with_concretization(mem_addr):
+    if isinstance(mem_addr, int) or mem_addr.op=="BVV":
+        for expr, val in track_concretization_values:
+            if mem_addr.args[0] == val:
+                raise ValueError(expr, val)
+
+
 def mem_write_before(state):
-    mem_addr_arg = state.inspect.mem_write_address.__repr__(inner=True)
-    for expr, val in track_concretization_values:
-        if mem_addr_arg == hex(val):
-            raise ValueError(expr, val)
+    check_collision_with_concretization(state.inspect.mem_write_address)
 
 
 def mem_read_after_approx(state):
@@ -107,11 +113,8 @@ def mem_read_after(state):
     #print("\nREAD")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
+    check_collision_with_concretization(state.inspect.mem_read_address)
 
-    mem_addr_arg = state.inspect.mem_read_address.__repr__(inner=True)
-    for expr, val in track_concretization_values:
-        if mem_addr_arg == hex(val):
-            raise ValueError(expr, val)
 
     if state.inspect.mem_read_expr.symbolic and state.inspect.mem_read_expr.uninitialized:
         mem_addr = own_bv_str(state.inspect.mem_read_address)
@@ -153,49 +156,73 @@ def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr):
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(final_states, errored_states, assert_addr, concretization_constraints, dump_json=True):
+def print_results(simgr_states, errored_states, assert_addr, concretization_constraints, dump_json=True):
     def get_path_constraints(state_constraints, concretization_constraints):
-        path_constraints_first_filtering = [const for const in state_constraints if not all(x in str(const) for x in ["MEM", "==", "mem_"])]
-        path_constraints_second_filtering = [const for const in path_constraints_first_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in track_concretization_values)]
-        path_constraints_third_filtering = [const for const in path_constraints_second_filtering if not any(concr_val[1] == const.args[1].args[0] and const.args[0].__repr__(inner=True) == concr_val[0].__repr__(inner=True) for concr_val in concretization_constraints)]
+        path_constraints_first_filtering = [
+            const for const in state_constraints
+                if not all(x in str(const) for x in ["MEM", "==", "mem_"])
+        ]
+        path_constraints_second_filtering = [
+            const for const in path_constraints_first_filtering
+                if not any(const.structurally_match(expr==val) for (expr,val) in track_concretization_values)
+        ]
+        path_constraints_third_filtering = [
+            const for const in path_constraints_second_filtering
+                if not any(const.structurally_match(claripy.Not(expr==val)) for (expr,val) in concretization_constraints)
+        ]
         list_constraints = [own_bv_str(const) for const in path_constraints_third_filtering]
         return list_constraints
 
+    def get_addr(s):
+        try:
+            if s.addr == assert_addr:
+                addr = "Assert failed"
+            else:
+                addr = hex(s.addr)
+        except:
+            addr = own_bv_str(s.regs.ip)
+            #addr = (s.regs.ip).__repr__(inner=True)
+        return addr
+
     print()
-    print(f"I - RESULT: {len(final_states)} final states")
+    print("I - RESULT final states:")
 
     output = []
     dict_state = {}
-    for state in final_states:
-        print("="*80)
-        print("STATE:", state, "------> Assert failed" if state.addr == assert_addr else "")
-        # is a listing of the basic block addresses executed by the state.
-        list_addrs = state.history.bbl_addrs.hardcopy
-        # converts addresses from decimal to hex
-        list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
-        list_constraints = get_path_constraints(state.solver.constraints, concretization_constraints)
-        list_obs = [(idx, own_bv_str(cond), [own_bv_str(obs) for obs in obss]) for idx, cond, obss in state.observations.list_obs]
-        if args.debug_out:
-            print("\t- Path:", ''.join("\n\t\t{0}".format(addr) for addr in list_addrs))
-            print("\t- Guards:", ''.join("\n\t\t{0}".format(str(g)) for g in state.history.jump_guards.hardcopy))
-            print("\t- State Constraints:", ''.join("\n\t\t\t{0}".format(str(sc)) for sc in state.solver.constraints))
-            print("\t- Path Constraints:\t", ''.join("\n\t\t\t{0}".format(c) for c in list_constraints))
-            print("\t- Observations:\t\t", ''.join("\n\t\t\t{0}".format(o) for o in list_obs))
+    for name, final_states in simgr_states:
+        print("-"*80)
+        print(len(final_states), name)
+        for state in final_states:
+            state_addr = get_addr(state)
             print("="*80)
+            print("STATE:", state, f"------> {state_addr}" if state_addr=="Assert failed" else "")
 
-        # append to dictionary for json output
-        if state.addr == assert_addr:
-            state_addr = "Assert failed"
-            continue
-        else:
-            state_addr = hex(state.addr)
-        dict_state["addr"] = state_addr
-        dict_state["path"] = list_addrs
-        dict_state["constraints"] = list_constraints
-        dict_state["observations"] = list_obs
-        output.append(dict_state.copy())
+            # is a listing of the basic block addresses executed by the state.
+            list_addrs = state.history.bbl_addrs.hardcopy
+            # converts addresses from decimal to hex
+            list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
+            list_constraints = get_path_constraints(state.solver.constraints, concretization_constraints)
+            list_obs = [(idx, own_bv_str(cond), [own_bv_str(obs) for obs in obss]) for (idx, cond, obss, is_shadow) in state.observations.list_obs]
+            if args.debug_out:
+                print("\t- Path:", ''.join("\n\t\t{0}".format(addr) for addr in list_addrs))
+                print("\t- Guards:", ''.join("\n\t\t{0}".format(str(g)) for g in state.history.jump_guards.hardcopy))
+                print("\t- State Constraints:", ''.join("\n\t\t\t{0}".format(str(sc)) for sc in state.solver.constraints))
+                print("\t- Path Constraints:\t", ''.join("\n\t\t\t{0}".format(c) for c in list_constraints))
+                print("\t- Observations:\t\t", ''.join("\n\t\t\t{0}".format(o) for o in list_obs))
+                print("="*80)
+
+            # append to dictionary for json output
+            if state_addr == "Assert failed":
+                continue
+            else:
+                dict_state["addr"] = state_addr
+                #dict_state["length"] = len(state.history.bbl_addrs.hardcopy)
+                dict_state["path"] = list_addrs
+                dict_state["constraints"] = list_constraints
+                dict_state["observations"] = list_obs
+                output.append(dict_state.copy())
     if args.error_states:
-        print("="*80)
+        print("-"*80)
         print("ERRORED STATES:")
         print(errored_states)
     if dump_json:
@@ -214,7 +241,7 @@ def main():
     proj = angr.Project(args.program, main_opts={'base_addr': args.base_addr})
 
     # sets addresses for assertion and observations in an external region
-    extern_addr = proj.loader.kernel_object.min_addr+0x5
+    extern_addr = proj.loader.kernel_object.min_addr+0x14
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, args.dump_irsb)
 
     # sets the initial state and registers
@@ -246,8 +273,9 @@ def main():
             if len(loop_finder.loops) > 0:
                 simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=1))
 
-            simgr.explore()
-            print_results(simgr.deadended, simgr.errored, extern_addr, concretization_constraints)
+            simgr.explore(n=args.num_steps)
+            simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored']
+            print_results(simgr_states, simgr.errored, extern_addr, concretization_constraints)
         except ValueError as e:
             concretization_constraints.append(e.args)
             print("EXCEPTION CONCRETIZATION COLLISION: ", e)
