@@ -11,7 +11,7 @@ def regs_extraction_from_json(birprog, regs):
                     for key,value in dic.items():
                         if key == "var":
                             reg = dic.get(key)
-                            if reg["name"] != "MEM" and reg["name"] != "MEM*":
+                            if reg["name"] != "MEM" and "*" not in reg["name"]:
                                 regs.append(reg)
                         else:
                             regs_extraction_from_json(value, regs)
@@ -19,7 +19,7 @@ def regs_extraction_from_json(birprog, regs):
             for key,value in birprog.items():
                 if key == "var":
                     reg = birprog.get(key)
-                    if reg["name"] != "MEM" and reg["name"] != "MEM*":
+                    if reg["name"] != "MEM" and "*" not in reg["name"]:
                         regs.append(reg)
                 else:
                     regs_extraction_from_json(value, regs)

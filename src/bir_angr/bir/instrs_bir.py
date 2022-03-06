@@ -25,17 +25,18 @@ class Instruction_ASSIGN(BIR_Instruction):
         return val
 
     def compute_result(self):
-        val = self.get_argument2()
-        if not val:
-            return
-        elif isinstance(val, str) and val == "MEM":
-            assert self.get_argument1() == "MEM*"
-            return
+        reg = self.get_argument1()
+        if "*" in reg:
+            reg = reg.replace("*", "")
+            if (self.block["exp"]["exptype"] == "BExp_Den" and self.block["exp"]["var"]["name"] == reg):
+                return
 
+        val = self.get_argument2()
+        if not val: # Store expression
+            return
         if val.ty == Type.int_1:
             val = val.cast_to(Type.int_8)
 
-        reg = self.get_argument1()
         self.put(val, reg)
 
 
@@ -294,6 +295,8 @@ class Instruction_DEN(BIR_Instruction):
 
     def get_register(self, block):
         REGISTER_NAME = block["name"]
+        if "*" in REGISTER_NAME:
+            REGISTER_NAME = REGISTER_NAME.replace("*", "")
         REGISTER_TYPE = block["type"]     
         if (REGISTER_TYPE == "imm64"):
             REGISTER_TYPE = Type.int_64
@@ -312,11 +315,7 @@ class Instruction_DEN(BIR_Instruction):
         return val
 
     def compute_result(self):
-        mem = self.block["var"]["name"]
-        if (mem == "MEM") or (mem == "MEM*"):
-            val = mem
-        else:
-            val = self.get_register(self.block["var"])
+        val = self.get_register(self.block["var"])
         return val
 
 
