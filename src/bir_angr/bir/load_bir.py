@@ -1,4 +1,5 @@
 from cle.backends import Blob, register_backend
+from cle.backends.elf import ELF
 from archinfo import arch_from_id
 import logging
 
@@ -6,7 +7,7 @@ l = logging.getLogger("cle.blob")
 
 __all__ = ('BIR',)
 
-class BIR(Blob):
+class BIR(ELF):
     """
     Representation of a binary blob, i.e. an executable in an unknown file format.
     """

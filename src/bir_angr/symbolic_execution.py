@@ -229,15 +229,20 @@ def print_results(simgr_states, errored_states, assert_addr, extra_concretizatio
 
 
 def main():
+    # binary program to be loaded into memory
+    binfile = "tests/test_load_data/bin"
+    # sends the bir program in json format to the lifter
+    birprogjson = "tests/test_load_data/magicinput.bir"
+
     # extracts the registers from the input program and sets them in the register list of the architecture
-    regs = set_registers(args.program)
+    regs = set_registers(birprogjson)
 
     # initializes the angr project
-    proj = angr.Project(args.program, main_opts={'base_addr': args.base_addr})
+    proj = angr.Project(binfile, main_opts={'backend': 'bir'})
 
     # sets addresses for assertion and observations in an external region
     extern_addr = proj.loader.kernel_object.min_addr+0x14
-    bir_angr.bir.lift_bir.set_extern_val(extern_addr, args.dump_irsb)
+    bir_angr.bir.lift_bir.set_extern_val(extern_addr, args.dump_irsb, birprogjson)
 
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=args.base_addr, remove_options=angr.options.simplification)

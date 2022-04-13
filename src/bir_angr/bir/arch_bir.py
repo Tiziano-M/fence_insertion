@@ -64,6 +64,8 @@ class ArchBIR(Arch):
     instruction_alignment = 1
     ip_offset = 0
     instruction_endness = "Iend_LE"
+    linux_name = 'aarch64'
+    triplet = 'aarch64-linux-gnueabihf'
 
 
     default_symbolic_registers = []

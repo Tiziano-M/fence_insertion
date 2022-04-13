@@ -19,9 +19,10 @@ def cleanup_cache_lifting():
     LifterBIR.cache_lifting = None
 
 
-def set_extern_val(addr, dump_irsb):
+def set_extern_val(addr, dump_irsb, birprogjson):
     LifterBIR.extern_addr = addr
     LifterBIR._dump_irsb = dump_irsb
+    LifterBIR._birprogjson = birprogjson
 
 
 
@@ -33,13 +34,14 @@ class LifterBIR(Lifter):
     cache_lifting = None
     extern_addr = None
     _dump_irsb = None
+    _birprogjson = None
 
     def prelift(self, dump_irsb=False):
         bir_Instruction = BIR_Instruction(arch=archinfo.arch_from_id('bir'), addr=0)
         dict_irsb = {}
 
         try:
-            blocks = ParserBIR.parse(self.data)
+            blocks = ParserBIR.parse(LifterBIR._birprogjson)
 
             for block in blocks:
                 irsb = IRSB.empty_block(self.arch, self.addr)

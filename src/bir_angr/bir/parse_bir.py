@@ -10,11 +10,10 @@ class ParserBIR:
     :rtype:            list
     """
 
-    def parse(data):
-        data = "".join(chr(i) for i in data)
-        bad_chr = data.rfind("\n")
-        bir_program_json = data[:bad_chr]
-        bir_program = json.loads(bir_program_json)
+    def parse(birprogjson):
+        data = open(birprogjson, "rb")
+        data = data.read()
+        bir_program = json.loads(data)
         
         list_blocks = list()        
         for block in bir_program:
