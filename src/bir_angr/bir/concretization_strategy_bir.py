@@ -7,11 +7,19 @@ import claripy
 class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
 
 
-    def __init__(self, prog_min_addr, prog_max_addr, repeat_expr, repeat_constraints=None, recent_track_values=None, **kwargs):
+    def __init__(self,
+                 prog_min_addr,
+                 prog_max_addr,
+                 repeat_expr,
+                 repeat_constraints=None,
+                 recent_track_values=None,
+                 negated_previous_choices=None,
+                 **kwargs):
         super(SimConcretizationStrategyBIR, self).__init__(repeat_expr=repeat_expr, repeat_constraints=repeat_constraints, **kwargs)
         self.track_values = [] if recent_track_values is None else recent_track_values
         self._prog_min_addr = prog_min_addr
         self._prog_max_addr = prog_max_addr
+        self._negated_previous_choices = [] if negated_previous_choices is None else negated_previous_choices
 
 
     def _concretize(self, memory, addr, **kwargs):
@@ -38,17 +46,15 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             if extra_constraints is not None:
                 child_constraints += tuple(extra_constraints)
 
+            if self._negated_previous_choices:
+                child_constraints += tuple(self._negated_previous_choices)
             child_constraints += (addr_constraint, addr_constraint2)
             #print(memory.state.solver.unsat_core(extra_constraints=child_constraints))
             try:
                 c = self._any(memory, addr, extra_constraints=child_constraints, **kwargs)
             except SimUnsatError:
-                # check if the reason is because the solution has already been taken from another address
-                c = self._any(memory, addr, extra_constraints=(addr_constraint, addr_constraint2), **kwargs)
-                for val in self.track_values:
-                    if c == val.args[1].args[0]:
-                        raise ConcretizationException("collision of %s with" % addr, val.args[0], val.args[1])
-                raise SystemExit('the address %s cannot be concretized.' % addr)
+                # these choices will be excluded in the next iteration
+                raise ConcretizationException("the address %s cannot be concretized." % addr, self.track_values)
             self._repeat_constraints.append(self._repeat_expr != c)
             self.track_values.append(addr==c)
         return [ c ]
@@ -58,17 +64,15 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
 
 class ConcretizationException(Exception):
     '''
-    Raised when there is a concretization collision.
-    The symbolic value {addr} will not be concretized in this specific solution {val}.
+    Raised when there is a concretization failure.
     '''
 
-    def __init__(self, message, addr, val, *args):
+    def __init__(self, message, previous_values, *args):
         super().__init__(message, *args)
         self.message = message
-        self.addr = addr
-        self.val = val
+        self.previous_values = previous_values
 
 
     def __str__(self):
-        return 'ConcretizationException: %s %s concretized to %s.' % (self.message, self.addr, self.val)
+        return 'ConcretizationException: %s\nThese solutions will be excluded in the next iteration:\n%s' % (self.message, self.previous_values)
 

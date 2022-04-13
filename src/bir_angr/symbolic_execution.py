@@ -73,7 +73,7 @@ def check_collision_with_concretization(mem_addr, track_concretization_values):
     if isinstance(mem_addr, int) or mem_addr.op=="BVV":
         for expr in track_concretization_values:
             if mem_addr.args[0] == expr.args[1].args[0]:
-                raise ConcretizationException("collision of memory read at %s with" % mem_addr, expr.args[0], expr.args[1])
+                raise ConcretizationException("collision of memory read at %s." % mem_addr, [expr])
 
 
 def mem_write_before(state):
@@ -147,14 +147,11 @@ def add_bir_concretization_strategy(state, prog_min_addr, prog_max_addr, extra_c
     state.memory.read_strategies.clear()
     state.memory.write_strategies.clear()
 
-    if not extra_concretization_constraints:
-        extra_constraints = None
-    else:
-        # excludes these solutions when doing the concretisation
-        extra_constraints = [claripy.Not(expr==val) for expr, val in extra_concretization_constraints]
 
+    # excludes these solutions when doing the concretisation
+    negated_previous_concretizations = [claripy.Not(claripy.And(*clist)) for clist in extra_concretization_constraints if not clist==[]]
     repeat_expr = claripy.BVS("REPEAT", 64)
-    bir_concr_strategy = SimConcretizationStrategyBIR(prog_min_addr, prog_max_addr, repeat_expr, extra_constraints)
+    bir_concr_strategy = SimConcretizationStrategyBIR(prog_min_addr=prog_min_addr, prog_max_addr=prog_max_addr, repeat_expr=repeat_expr, negated_previous_choices=negated_previous_concretizations)
     state.memory.read_strategies.insert(0, bir_concr_strategy)
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
@@ -272,8 +269,9 @@ def main():
             simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored']
             print_results(simgr_states, simgr.errored, extern_addr, extra_concretization_constraints)
         except ConcretizationException as e:
-            extra_concretization_constraints.append((e.addr, e.val))
-            print(e, "A new constraint will be added.\n")
+            extra_concretization_constraints.append((e.previous_values))
+            print(e)
+            print("A new constraint will be added.\n")
             claripy.ast.base.var_counter = itertools.count()
         else:
             break
