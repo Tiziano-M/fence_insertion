@@ -53,6 +53,11 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             try:
                 c = self._any(memory, addr, extra_constraints=child_constraints, **kwargs)
             except SimUnsatError:
+                #unsat_constraints = memory.state.solver.unsat_core(extra_constraints=child_constraints)
+                print("\nIP:", memory.state.ip)
+                print("\nConstraints:", *memory.state.solver.constraints, sep='\n')
+                print("\nExtra Constraints:", *child_constraints, sep='\n')
+                print()
                 # these choices will be excluded in the next iteration
                 raise ConcretizationException("the address %s cannot be concretized." % addr, self.track_values)
             self._repeat_constraints.append(self._repeat_expr != c)

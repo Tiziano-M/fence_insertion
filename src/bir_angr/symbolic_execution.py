@@ -10,7 +10,7 @@ from bir_angr.bir.concretization_strategy_bir import SimConcretizationStrategyBI
 import itertools
 
 parser = argparse.ArgumentParser()
-parser.add_argument("program", help="BIR program path name", type=str)
+parser.add_argument("entryfilename", help="Json entry point", type=str)
 parser.add_argument("-ba", "--base_addr", help="The address to place the data in memory (default 0)", default=0, type=int)
 parser.add_argument('-es', "--error_states", help="Print error states", default=False, action='store_true')
 parser.add_argument('-do', "--debug_out", help="Print a more verbose version of the symbolic execution output", default=False, action='store_true')
@@ -66,6 +66,7 @@ def add_state_options(state):
     state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
+    #state.options.add(angr.options.CONSTRAINT_TRACKING_IN_SOLVER)
     #print(state.options.tally())
 
 
@@ -229,10 +230,15 @@ def print_results(simgr_states, errored_states, assert_addr, extra_concretizatio
 
 
 def main():
+    with open(args.entryfilename, "r") as entry_json:
+        entry = json.load(entry_json)
+
     # binary program to be loaded into memory
-    binfile = "tests/test_load_data/bin"
+    binfile = entry["bin"]
     # sends the bir program in json format to the lifter
-    birprogjson = "tests/test_load_data/magicinput.bir"
+    birprogjson = entry["birprogram"]
+    entry_addr = entry["entry"]
+    exit_addrs = entry["exits"]
 
     # extracts the registers from the input program and sets them in the register list of the architecture
     regs = set_registers(birprogjson)
@@ -245,7 +251,7 @@ def main():
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, args.dump_irsb, birprogjson)
 
     # sets the initial state and registers
-    state = proj.factory.entry_state(addr=args.base_addr, remove_options=angr.options.simplification)
+    state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
     add_state_options(state)
 
@@ -270,7 +276,7 @@ def main():
             if len(loop_finder.loops) > 0:
                 simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=1))
 
-            simgr.explore(n=args.num_steps)
+            simgr.explore(n=args.num_steps, avoid=exit_addrs)
             simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored']
             print_results(simgr_states, simgr.errored, extern_addr, extra_concretization_constraints)
         except ConcretizationException as e:
