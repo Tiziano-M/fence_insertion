@@ -60,12 +60,14 @@ def init_regs(state, regs):
         setattr(state.regs, reg["name"], claripy.BVS(reg["name"], sz))
         
 
-def add_state_options(state):
+def set_state_options(state):
     state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
-    state.options.add(angr.options.CONSERVATIVE_READ_STRATEGY)
-    state.options.add(angr.options.CONSERVATIVE_WRITE_STRATEGY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
     state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
+
+    # try to avoid nondeterministic behavior
+    state.options.remove(angr.options.COMPOSITE_SOLVER)
+    state.options.add(angr.options.CACHELESS_SOLVER)
     #state.options.add(angr.options.CONSTRAINT_TRACKING_IN_SOLVER)
     #print(state.options.tally())
 
@@ -241,7 +243,7 @@ def main():
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
-    add_state_options(state)
+    set_state_options(state)
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
