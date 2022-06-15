@@ -106,7 +106,7 @@ def mem_read_after(state):
     #print("\nREAD")
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
-    check_collision_with_concretization(state.inspect.mem_read_address, state.memory.read_strategies[0].track_values)
+    #check_collision_with_concretization(state.inspect.mem_read_address, state.memory.read_strategies[0].track_values)
 
 
     if state.inspect.mem_read_expr.symbolic and state.inspect.mem_read_expr.uninitialized:
@@ -128,7 +128,7 @@ def mem_read_after(state):
 
         for mem_ast in mem_ast_set:
             if not mem_ast.cache_key in replacements:
-                mem_var = claripy.BVS(f"MEM[{mem_addr}]", mem_ast.length)
+                mem_var = claripy.BVS(f"MEM[{mem_addr}]_0_{mem_ast.length}", mem_ast.length, explicit_name=True)
                 replacements[mem_ast.cache_key] = mem_var
                 mem_expr_constraint = mem_var == mem_ast
                 state.add_constraints(mem_expr_constraint)
@@ -257,7 +257,7 @@ def main():
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
-    state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
+    #state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
 
     cfg = set_cfg(proj)
     loop_finder = proj.analyses.LoopFinder()
