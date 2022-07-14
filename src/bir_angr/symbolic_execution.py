@@ -7,7 +7,7 @@ import bir_angr.bir
 import claripy
 from bir_angr.utils.own_claripy_printer import own_bv_str
 from bir_angr.bir.concretization_strategy_bir import *
-import itertools
+from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 
 parser = argparse.ArgumentParser()
 parser.add_argument("entryfilename", help="Json entry point", type=str)
@@ -31,13 +31,16 @@ def change_simplification():
     claripy.simplifications.simpleton = SimplificationManagerBIR()
 
 
-def set_cfg(proj):
+def find_loops(proj):
     from angr.analyses.cfg import cfg_fast
     cfg_fast.VEX_IRSB_MAX_SIZE = sys.maxsize
 
     #regions=[(proj.loader.main_object.min_addr,4197800+0x4)]
-    cfg = proj.analyses.CFGFast(normalize=True, function_starts=[proj.loader.main_object.min_addr])
-    return cfg
+    cfg = proj.analyses.CFGFast(normalize=True, resolve_indirect_jumps=False)
+    #cfg = proj.analyses.CFGEmulated(keep_state=True, resolve_indirect_jumps=False, normalize=True)
+    loop_finder = proj.analyses.LoopFinder()
+
+    return (cfg, loop_finder.loops)
 
 
 def set_registers(birprog):
@@ -249,8 +252,11 @@ def main():
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     #state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
 
-    cfg = set_cfg(proj)
-    loop_finder = proj.analyses.LoopFinder()
+    #cfg, loops = find_loops(proj)
+
+    # gets the system call addresses to be ignored into loop cutting
+    n_syscalls = len(proj.simos.syscall_library.syscall_number_mapping['BIR'])
+    syscall_addrs = [proj.loader.kernel_object.min_addr + (i*4) for i in range(n_syscalls)]
 
     extra_concretization_constraints = []
     new_concretizations = None
@@ -264,8 +270,11 @@ def main():
         try:
             # executes the symbolic execution and prints the results
             simgr = proj.factory.simulation_manager(state)
-            if len(loop_finder.loops) > 0:
-                simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, bound=1))
+
+            # loop handling based on cfg
+            #if len(loops) > 0:
+            #    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, loops=loops, bound=1))
+            simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
 
             simgr.explore(n=args.num_steps, avoid=exit_addrs)
             simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored']
