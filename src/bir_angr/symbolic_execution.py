@@ -1,6 +1,7 @@
 import sys
 import argparse
 import json
+import multiprocessing
 
 import angr
 import bir_angr.bir
@@ -73,6 +74,14 @@ def set_state_options(state):
     state.options.add(angr.options.CACHELESS_SOLVER)
     #state.options.add(angr.options.CONSTRAINT_TRACKING_IN_SOLVER)
     #print(state.options.tally())
+
+
+def find_exit(state):
+	print("\n EXIT")
+	print(hex(state.addr))
+	print(state.inspect.exit_jumpkind)
+	if not state.inspect.exit_jumpkind == 'Ijk_Sys_syscall':
+		state.inspect.exit_jumpkind = 'Ijk_Exit'
 
 
 def check_collision_with_concretization(mem_addr, track_concretization_values):
@@ -160,7 +169,7 @@ def add_bir_concretization_strategy(state, loader_objects, new_choices, extra_co
     state.memory.write_strategies.insert(0, bir_concr_strategy)
 
 
-def print_results(simgr_states, errored_states, assert_addr, extra_concretization_constraints, dump_json=True):
+def print_results(simgr_states, errored_states, assert_addr, fail_assert_states, extra_concretization_constraints, dump_json=True):
     def get_addr(s):
         try:
             if s.addr == assert_addr:
@@ -210,6 +219,8 @@ def print_results(simgr_states, errored_states, assert_addr, extra_concretizatio
                 dict_state["constraints"] = list_constraints
                 dict_state["observations"] = list_obs
                 output.append(dict_state.copy())
+    print("-"*80)
+    print(f"{len(fail_assert_states)} Failed Assertion States at {hex(assert_addr)}.")
     if args.error_states:
         print("-"*80)
         print(f"{len(errored_states)} ERRORED STATES:")
@@ -222,7 +233,7 @@ def print_results(simgr_states, errored_states, assert_addr, extra_concretizatio
 
 
 
-def main():
+def run():
     with open(args.entryfilename, "r") as entry_json:
         entry = json.load(entry_json)
 
@@ -251,6 +262,7 @@ def main():
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     #state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
+    state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
 
     #cfg, loops = find_loops(proj)
 
@@ -276,9 +288,11 @@ def main():
             #    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, loops=loops, bound=1))
             simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
 
-            simgr.explore(n=args.num_steps, avoid=exit_addrs)
-            simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored']
-            print_results(simgr_states, simgr.errored, extern_addr, extra_concretization_constraints)
+            simgr.explore(n=args.num_steps)
+            #simgr.run(n=args.num_steps, until=(lambda s: not any(s.addr != exit for s in simgr.active for exit in exit_addrs)))
+            simgr.move(from_stash='deadended', to_stash='assertionfailed', filter_func=lambda s: s.addr == extern_addr)
+            simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored' and name != 'assertionfailed']
+            print_results(simgr_states, simgr.errored, extern_addr, simgr.assertionfailed, extra_concretization_constraints)
         except ConcretizationException as e:
             new_concretizations = e.new_solutions
             print(e)
@@ -286,6 +300,15 @@ def main():
         else:
             break
 
+
+
+def main():
+    thread = multiprocessing.Process(target=run)
+    thread.start()
+    thread.join(1200)
+    if thread.is_alive():
+        thread.terminate()
+        print("angr symbolic execution timed out!")
 
 
 
