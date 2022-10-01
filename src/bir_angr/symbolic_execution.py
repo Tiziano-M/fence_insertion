@@ -77,9 +77,9 @@ def set_state_options(state):
 
 
 def find_exit(state):
-	print("\n EXIT")
-	print(hex(state.addr))
-	print(state.inspect.exit_jumpkind)
+	#print("\n EXIT")
+	#print(hex(state.addr))
+	#print(state.inspect.exit_jumpkind)
 	if not state.inspect.exit_jumpkind == 'Ijk_Sys_syscall':
 		state.inspect.exit_jumpkind = 'Ijk_Exit'
 
@@ -234,6 +234,9 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 def run():
+    # handles some zeroexts unsupported by bir
+    if True: change_simplification()
+
     with open(args.entryfilename, "r") as entry_json:
         entry = json.load(entry_json)
 
@@ -262,7 +265,7 @@ def run():
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     #state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
-    state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
+    #state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
 
     #cfg, loops = find_loops(proj)
 
@@ -286,9 +289,9 @@ def run():
             # loop handling based on cfg
             #if len(loops) > 0:
             #    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, loops=loops, bound=1))
-            simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
+            #simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
 
-            simgr.explore(n=args.num_steps)
+            simgr.explore(n=args.num_steps, avoid=exit_addrs)
             #simgr.run(n=args.num_steps, until=(lambda s: not any(s.addr != exit for s in simgr.active for exit in exit_addrs)))
             simgr.move(from_stash='deadended', to_stash='assertionfailed', filter_func=lambda s: s.addr == extern_addr)
             simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored' and name != 'assertionfailed']

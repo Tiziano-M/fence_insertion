@@ -15,6 +15,9 @@ class SimplificationManagerBIR(claripy.simplifications.SimplificationManager):
         elif n == 24:
             assert e.size() == 8
             return e.make_like('ZeroExt', (16, claripy.ZeroExt(8, e)), length=n + e.size(), simplify=False)
+        elif n == 48:
+            assert e.size() == 16
+            return e.make_like('ZeroExt', (32, claripy.ZeroExt(8, e)), length=n + e.size(), simplify=False)
         elif n == 56:
             assert e.size() == 8
             new_e = e.make_like('ZeroExt', (16, claripy.ZeroExt(8, e)), length=24 + e.size(), simplify=False)

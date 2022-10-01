@@ -78,6 +78,9 @@ def str_claripy_with_extreme_parenthesis(e):
     # const
     if e.op == "BVV":
       return f"{hex(e.args[0])}#{e.args[1]}"
+    # bool
+    elif e.op == "BoolV":
+      return e.args[0]
     # var
     elif e.op == "BVS":
       return e.args[0]

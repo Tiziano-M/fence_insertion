@@ -129,7 +129,8 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                                     '''
                     else:
                         #print("\nstate pruned\n")
-                        raise SimStateError("state pruned.")
+                        raise SimStateError("%s: state pruned." % memory.state)
+                        #raise claripy.errors.UnsatError
 
 
 
