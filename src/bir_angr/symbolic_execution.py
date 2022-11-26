@@ -7,6 +7,7 @@ import angr
 import bir_angr.bir
 import claripy
 from bir_angr.utils.own_claripy_printer import own_bv_str
+from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 
@@ -17,6 +18,7 @@ parser.add_argument('-es', "--error_states", help="Print error states", default=
 parser.add_argument('-do', "--debug_out", help="Print a more verbose version of the symbolic execution output", default=False, action='store_true')
 parser.add_argument('-di', "--dump_irsb", help="Print VEX blocks", default=False, action='store_true')
 parser.add_argument('-n', "--num_steps", help="Number of steps", default=None, type=int)
+parser.add_argument('-dc', "--data_constraints", help="Add data section constraints to states ", default=False, action='store_true')
 args = parser.parse_args()
 
 
@@ -30,6 +32,16 @@ replacements = {}
 def change_simplification():
     from bir_angr.utils.simplification_manager_bir import SimplificationManagerBIR
     claripy.simplifications.simpleton = SimplificationManagerBIR()
+
+
+def extract_data_constraints(binfile, dump_data=False, dump_constraints=False):
+    dsp = DataSectionParser(binfile)
+    if dump_data:
+        print()
+        print(json.dumps(dsp.data_map, indent=4))
+    if dump_constraints:
+        print(*dsp.data_constraints, sep="\n")
+    return dsp.data_constraints
 
 
 def find_loops(proj):
@@ -118,6 +130,7 @@ def mem_read_after_approx(state):
 
 def mem_read_after(state):
     #print("\nREAD")
+    #print("IP:", state.ip)
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
     #check_collision_with_concretization(state.inspect.mem_read_address, state.memory.read_strategies[0].track_values)
@@ -247,6 +260,10 @@ def run():
     entry_addr = entry["entry"]
     exit_addrs = entry["exits"]
 
+    data_constraints = None
+    if args.data_constraints:
+        data_constraints = extract_data_constraints(binfile)
+
     # extracts the registers from the input program and sets them in the register list of the architecture
     regs = set_registers(birprogjson)
 
@@ -276,7 +293,7 @@ def run():
     extra_concretization_constraints = []
     new_concretizations = None
     while True:
-        print("I - Angr Symbolic Execution")
+        print("I - angr Symbolic Execution")
 
         # adds a concretization strategy with some constraints for a bir program
         add_bir_concretization_strategy(state, proj.loader.all_objects, new_concretizations, extra_concretization_constraints)
@@ -295,6 +312,10 @@ def run():
             #simgr.run(n=args.num_steps, until=(lambda s: not any(s.addr != exit for s in simgr.active for exit in exit_addrs)))
             simgr.move(from_stash='deadended', to_stash='assertionfailed', filter_func=lambda s: s.addr == extern_addr)
             simgr_states = [(name, ls) for name, ls in simgr._stashes.items() if len(ls) != 0 and name != 'errored' and name != 'assertionfailed']
+
+            if data_constraints:
+                for st in simgr.avoid:
+                    st.add_constraints(*data_constraints)
             print_results(simgr_states, simgr.errored, extern_addr, simgr.assertionfailed, extra_concretization_constraints)
         except ConcretizationException as e:
             new_concretizations = e.new_solutions
