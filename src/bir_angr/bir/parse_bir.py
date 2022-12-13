@@ -31,8 +31,15 @@ class Block:
         self.last_statement = self.get_last_statement(block["estmt"])
    
     def get_label(self, label):
-        value = label["val"]
-        return value
+        if "val" in label:
+            lbl_addr = label["val"]
+            assert isinstance(lbl_addr, int)
+        elif "str" in label:
+            lbl_addr = label["str"]
+            assert isinstance(lbl_addr, str)
+        else:
+            raise KeyError("BIR Label address is not as expected")
+        return lbl_addr
 
     def get_statements(self, statements, show_statements=False):
         if not statements:

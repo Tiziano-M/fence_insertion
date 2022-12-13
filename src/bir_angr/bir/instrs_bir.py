@@ -60,20 +60,20 @@ class Instruction_ASSERT(BIR_Instruction):
                 self.put(self.constant(2, Type.int_64), 'syscall_num')
                 # the jump address is irrelevant here, it will be updated
                 self.jump(self.constant(1, Type.int_1), 
-                          self.constant(LifterBIR.extern_addr+1, Type.int_64), 
+                          self.constant(LifterBIR.kernel_addr+1, Type.int_64), 
                           jumpkind=JumpKind.Syscall)
                 return
             elif (self.block["exp"]["exp1"]["val"] == 42 and self.block["exp"]["exp2"]["val"] == 42):
                 self.put(self.constant(3, Type.int_64), 'syscall_num')
                 # the jump address is irrelevant here, it will be updated
                 self.jump(self.constant(1, Type.int_1), 
-                          self.constant(LifterBIR.extern_addr+1, Type.int_64), 
+                          self.constant(LifterBIR.kernel_addr+1, Type.int_64), 
                           jumpkind=JumpKind.Syscall)
                 return
 
 
         condition = self.get_argument()
-        to_addr = self.constant(LifterBIR.extern_addr, Type.int_64)
+        to_addr = self.constant(LifterBIR.kernel_addr, Type.int_64)
         negated_condition = self.ite(condition, self.constant(0, condition.ty), self.constant(1, condition.ty))
 
         self.irsb_c.add_exit(negated_condition, to_addr.rdt, JumpKind.Boring, self.arch.ip_offset)
@@ -383,7 +383,10 @@ class Instruction_BL_LABEL(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
-        val = self.block["str"]
+        target_addr = self.block["str"]
+        assert target_addr[-1] == "*" and target_addr[:2] == "0x" and int(target_addr[:-1], 16)
+        #print("SHADOW TARGET: ", hex(int(target_addr[:-1], 16)))
+        val = int(target_addr[:-1], 16) + LifterBIR.shadow_addr_start
         return val
 
 
@@ -441,7 +444,7 @@ class Instruction_OBSERVE(BIR_Instruction):
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
             self.put(obs, 'obs')
-            self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+            self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
         # to match the system call with 0 of 'observation'
         self.put(self.constant(0, Type.int_64), 'syscall_num')
@@ -453,7 +456,7 @@ class Instruction_OBSERVE(BIR_Instruction):
             raise Exception("condition in Observe statement is not well-typed")
         self.put(condition, 'cond_obs')
         self.put(self.constant(idx, Type.int_64), 'idx_obs')
-        self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.extern_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+        self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):
@@ -480,7 +483,10 @@ class Instruction_CJMP(BIR_Instruction):
         val1 = self.map_label_expressions(self.block["lblt"], self.irsb_c)
         val2 = self.map_label_expressions(self.block["lblf"], self.irsb_c)
 
-        self.addr = int(str(val2.rdt), 16)
+        if isinstance(val2, int):
+            self.addr = val2
+        else:
+            self.addr = int(str(val2.rdt), 16)
         self.jump(condition, val1)
 
 

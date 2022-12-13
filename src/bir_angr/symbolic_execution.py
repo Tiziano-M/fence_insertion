@@ -10,6 +10,7 @@ from bir_angr.utils.own_claripy_printer import own_bv_str
 from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
+from bir_angr.shadow_object import ShadowObject
 
 parser = argparse.ArgumentParser()
 parser.add_argument("entryfilename", help="Json entry point", type=str)
@@ -270,9 +271,15 @@ def run():
     # initializes the angr project
     proj = angr.Project(binfile, main_opts={'backend': 'bir'})
 
-    # sets addresses for assertion and observations in an external region
+    # shadow memory space object
+    _shadow_object = ShadowObject(proj.loader)
+    proj.loader._internal_load(_shadow_object)
+
+    # sets addresses for assertion and observations in the kernel region
     extern_addr = proj.loader.kernel_object.min_addr+0x14
-    bir_angr.bir.lift_bir.set_extern_val(extern_addr, args.dump_irsb, birprogjson)
+    # sets addresses for shadow instructions in an external region
+    shadow_addr = _shadow_object.min_addr - proj.loader.main_object.min_addr
+    bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
 
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)

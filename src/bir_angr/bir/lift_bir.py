@@ -19,8 +19,9 @@ def cleanup_cache_lifting():
     LifterBIR.cache_lifting = None
 
 
-def set_extern_val(addr, dump_irsb, birprogjson):
-    LifterBIR.extern_addr = addr
+def set_extern_val(kernel_addr, shadow_addr, dump_irsb, birprogjson):
+    LifterBIR.kernel_addr = kernel_addr
+    LifterBIR.shadow_addr_start = shadow_addr
     LifterBIR._dump_irsb = dump_irsb
     LifterBIR._birprogjson = birprogjson
 
@@ -32,7 +33,8 @@ class LifterBIR(Lifter):
     #lifter.VEX_IRSB_MAX_INST = 99
 
     cache_lifting = None
-    extern_addr = None
+    kernel_addr = None
+    shadow_addr_start = None
     _dump_irsb = None
     _birprogjson = None
 
@@ -45,8 +47,18 @@ class LifterBIR(Lifter):
 
             for block in blocks:
                 irsb = IRSB.empty_block(self.arch, self.addr)
-                irsb_c = IRSBCustomizer(irsb)             
-                irsb_c.imark(block.label, 1, 0)
+                irsb_c = IRSBCustomizer(irsb)
+                
+                if isinstance(block.label, int):
+                    lbl_addr = block.label
+                elif isinstance(block.label, str):
+                    assert LifterBIR.shadow_addr_start is not None
+                    assert block.label[-1] == "*" and block.label[:2] == "0x" and int(block.label[:-1], 16)
+                    lbl_addr = int(block.label[:-1], 16) + LifterBIR.shadow_addr_start
+                else:
+                    raise TypeError("Error in parsing BIR block label in VEX block label")
+
+                irsb_c.imark(lbl_addr, 1, 0)
 
                 is_syscall = False           
                 for statements in block.statements:
@@ -55,17 +67,17 @@ class LifterBIR(Lifter):
                     if irsb_c.irsb.jumpkind == JumpKind.Syscall:
                         is_syscall = True
                 bir_Instruction.map_last_statement(block.last_statement, irsb_c)
-                dict_irsb[block.label] = irsb_c
+                dict_irsb[lbl_addr] = irsb_c
 
                 if dump_irsb:
                     irsb_c.irsb.pp()
                 if is_syscall:
                     if IRSBSplitter.obs_dst is None:
-                        IRSBSplitter.obs_dst = LifterBIR.extern_addr
+                        IRSBSplitter.obs_dst = LifterBIR.kernel_addr
                     splitter = IRSBSplitter(dict_irsb, irsb_c)
                     dict_irsb = splitter.update_dict()
         except:
-            l.error("Pre-lifting Error: Block Address {:#x}".format(block.label))
+            l.error("Pre-lifting Error: Block Address {:#x}".format(lbl_addr))
             raise LiftingException('Could not decode any instructions')
         print("I - Pre-Lifting: Done!\n")
         return dict_irsb
