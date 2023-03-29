@@ -23,12 +23,6 @@ parser.add_argument('-dc', "--data_constraints", help="Add data section constrai
 args = parser.parse_args()
 
 
-# maps memory read values for replacement
-replacements = {}
-
-
-
-
 
 def change_simplification():
     from bir_angr.utils.simplification_manager_bir import SimplificationManagerBIR
@@ -105,7 +99,7 @@ def check_collision_with_concretization(mem_addr, track_concretization_values):
 
 
 def mem_write_before(state):
-    check_collision_with_concretization(state.inspect.mem_write_address, state.memory.read_strategies[0].track_values)
+    check_collision_with_concretization(state.inspect.mem_write_address, state.concretizations.track_values)
 
 
 def mem_read_after_approx(state):
@@ -134,7 +128,7 @@ def mem_read_after(state):
     #print("IP:", state.ip)
     #print(state.inspect.mem_read_address)
     #print(state.inspect.mem_read_expr)
-    #check_collision_with_concretization(state.inspect.mem_read_address, state.memory.read_strategies[0].track_values)
+    #check_collision_with_concretization(state.inspect.mem_read_address, state.concretizations.track_values)
 
 
     if state.inspect.mem_read_expr.symbolic and state.inspect.mem_read_expr.uninitialized:
@@ -155,9 +149,9 @@ def mem_read_after(state):
                         mem_ast_set.add(subast)
 
         for mem_ast in mem_ast_set:
-            if not mem_ast.cache_key in replacements:
+            if not mem_ast.cache_key in state.concretizations.replacements:
                 mem_var = claripy.BVS(f"MEM[{mem_addr}]_0_{mem_ast.length}", mem_ast.length, explicit_name=True)
-                replacements[mem_ast.cache_key] = mem_var
+                state.concretizations.replacements[mem_ast.cache_key] = mem_var
                 mem_expr_constraint = mem_var == mem_ast
                 state.add_constraints(mem_expr_constraint)
                 # adds the non-repetition constraint in the concretization strategy
@@ -166,7 +160,7 @@ def mem_read_after(state):
                         state.memory.read_strategies[0]._repeat_expr != state.inspect.mem_read_address
                     )
 
-        state.inspect.mem_read_expr = state.inspect.mem_read_expr.replace_dict(replacements)
+        state.inspect.mem_read_expr = state.inspect.mem_read_expr.replace_dict(state.concretizations.replacements)
 
     #print(state.inspect.mem_read_expr)
     #print()
@@ -212,12 +206,15 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
             list_addrs = state.history.bbl_addrs.hardcopy
             # converts addresses from decimal to hex
             list_addrs = list(map(lambda value: hex(value) if value != assert_addr else "Assert failed", list_addrs))
-            list_constraints = [own_bv_str(c) for c in filtering_constraints(state.solver.constraints, state.memory.read_strategies[0].track_values)]
+            list_constraints = [own_bv_str(c) for c in filtering_constraints(state.solver.constraints, state.concretizations.track_values)]
             list_obs = [(idx, own_bv_str(cond), [own_bv_str(obs) for obs in obss]) for (idx, cond, obss, is_shadow) in state.observations.list_obs]
             if args.debug_out:
                 print("\t- Path:", ''.join("\n\t\t{0}".format(addr) for addr in list_addrs))
                 print("\t- Guards:", ''.join("\n\t\t{0}".format(str(g)) for g in state.history.jump_guards.hardcopy))
                 print("\t- State Constraints:", ''.join("\n\t\t\t{0}".format(str(sc)) for sc in state.solver.constraints))
+                print("\t- Satisfiable:", ''.join("\n\t\t\t{0}".format(state.satisfiable())))
+                print("\t- Concretizations:", ''.join("\n\t\t\t{0}".format(str(val)) for val in state.concretizations.track_values))
+                print("\t- Symbolic values:", ''.join("\n\t\t\t{0} => {1}".format(str(k),str(v)) for k,v in state.concretizations.replacements.items()))
                 print("\t- Path Constraints:\t", ''.join("\n\t\t\t{0}".format(c) for c in list_constraints))
                 print("\t- Observations:\t\t", ''.join("\n\t\t\t{0}".format(o) for o in list_obs))
                 print("="*80)
@@ -299,22 +296,22 @@ def run():
 
     extra_concretization_constraints = []
     new_concretizations = None
+    print("I - angr Symbolic Execution")
+
+    # adds a concretization strategy with some constraints for a bir program
+    add_bir_concretization_strategy(state, proj.loader.all_objects, new_concretizations, extra_concretization_constraints)
+    #state.concretizations.replacements.clear()
+
+    # executes the symbolic execution and prints the results
+    simgr = proj.factory.simulation_manager(state)
+
+    # loop handling based on cfg
+    #if len(loops) > 0:
+    #    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, loops=loops, bound=1))
+    #simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
+
     while True:
-        print("I - angr Symbolic Execution")
-
-        # adds a concretization strategy with some constraints for a bir program
-        add_bir_concretization_strategy(state, proj.loader.all_objects, new_concretizations, extra_concretization_constraints)
-        replacements.clear()
-
         try:
-            # executes the symbolic execution and prints the results
-            simgr = proj.factory.simulation_manager(state)
-
-            # loop handling based on cfg
-            #if len(loops) > 0:
-            #    simgr.use_technique(angr.exploration_techniques.LoopSeer(cfg=cfg, functions=None, loops=loops, bound=1))
-            #simgr.use_technique(LocalLoopSeerBIR(bound=1, syscall_addrs=syscall_addrs))
-
             simgr.explore(n=args.num_steps, avoid=exit_addrs)
             #simgr.run(n=args.num_steps, until=(lambda s: not any(s.addr != exit for s in simgr.active for exit in exit_addrs)))
             simgr.move(from_stash='deadended', to_stash='assertionfailed', filter_func=lambda s: s.addr == extern_addr)
@@ -326,6 +323,21 @@ def run():
             print_results(simgr_states, simgr.errored, extern_addr, simgr.assertionfailed, extra_concretization_constraints)
         except ConcretizationException as e:
             new_concretizations = e.new_solutions
+            jg_constraints = [c for c in e.failed_state.history.jump_guards.hardcopy if not (c != e.failed_state.solver.true).is_false()]
+            #print(*jg_constraints, sep='\n')
+            
+            for sa in simgr.active:
+                if e.failed_state.history.bbl_addrs.hardcopy == sa.history.bbl_addrs.hardcopy + [sa.ip.args[0]]:
+                    failed_state = sa
+                    simgr.active.remove(failed_state)
+                    # TODO: make sure it is the one that fails, is this enough?
+                    if jg_constraints != []:
+                        assert any(jc.structurally_match(fc) for jc in jg_constraints for fc in failed_state.solver.constraints)
+
+            initial_state = state.copy()
+            initial_state.add_constraints(*jg_constraints)
+            initial_state.concretizations.extend(new_concretizations)
+            simgr.active.append(initial_state)
             print(e)
             print("Restarting symbolic execution with new concretizations...\n")
         else:

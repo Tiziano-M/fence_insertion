@@ -81,6 +81,11 @@ class EndShadowExecution(SimProcedure):
         restore_state.solver.constraints.extend(self.state.solver.constraints[n_constraints:])
         restore_state.observations.list_obs.extend((i,c,o,"shadow") for (i,c,o,s) in self.state.observations.list_obs)
 
+        restore_state.concretizations.clear()
+        restore_state.concretizations.extend(self.state.concretizations.track_values)
+        restore_state.concretizations.dict_clear()
+        restore_state.concretizations._replacements = self.state.concretizations.replacements
+
         restore_state.regs.ip_at_syscall = self.state.regs.ip_at_syscall
         self.state = restore_state
 

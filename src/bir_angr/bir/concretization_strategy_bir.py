@@ -1,7 +1,11 @@
 from angr.concretization_strategies.norepeats import SimConcretizationStrategyNorepeats
 from angr.errors import SimUnsatError, SimStateError
 import claripy
-import subprocess
+
+import logging
+from angr.state_plugins.plugin import SimStatePlugin
+
+l = logging.getLogger(name=__name__)
 
 
 def filtering_constraints(list_constraints, track_concretization_values):
@@ -31,13 +35,13 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                  prog_range_constraints = None,
                  **kwargs):
         super(SimConcretizationStrategyBIR, self).__init__(repeat_expr=repeat_expr, repeat_constraints=repeat_constraints, **kwargs)
-        self.track_values = [] if recent_track_values is None else recent_track_values
+        #self.track_values = [] if recent_track_values is None else recent_track_values
         self._addr_ranges = addr_ranges
         self._prog_range_constraints = [] if prog_range_constraints is None else prog_range_constraints
 
 
     def _concretize(self, memory, addr, **kwargs):
-        for e in self.track_values:
+        for e in memory.state.concretizations.track_values:
             # recovers the value already concretized
             if addr.cache_key == e.args[0].cache_key:
                 c = e.args[1].args[0]
@@ -57,7 +61,9 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             # concretize in the middle
             #addr_constraint2 = claripy.And(claripy.UGT(addr, 0x10000), claripy.ULT(addr, 0xdffffffffffffffe))
 
-            self._repeat_constraints.extend([addr!=previous_addr.args[0] for previous_addr in self.track_values if not self.track_values==[]])
+            self._repeat_constraints.extend([addr!=previous_addr.args[0]
+                                              for previous_addr in memory.state.concretizations.track_values
+                                              if not memory.state.concretizations.track_values==[]])
 
             child_constraints = tuple(self._repeat_constraints) + (addr_constraint1, addr_constraint2)
             extra_constraints = kwargs.pop('extra_constraints', None)
@@ -78,11 +84,11 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                     #print("\nConstraints:", *memory.state.solver.constraints, sep="\n")
                     #print("\nExtra Constraints:", *child_constraints, sep="\n")
                     
-                    list_constraints = filtering_constraints(memory.state.solver.constraints, self.track_values)
+                    list_constraints = filtering_constraints(memory.state.solver.constraints, memory.state.concretizations.track_values)
                     memory.state.solver.reload_solver(constraints=list_constraints)
 
                     if memory.state.solver.satisfiable():
-                        exprs = [e.args[0] for e in self.track_values]
+                        exprs = [e.args[0] for e in memory.state.concretizations.track_values]
                         exprs.append(addr)
 
                         #addrs_constraint1 = [claripy.Or(claripy.UGT(exp,self._prog_max_addr), claripy.ULT(exp,self._prog_min_addr)) for exp in exprs]
@@ -145,8 +151,8 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                     #print("\nNEW CHOICES:", *zip(exprs,vals,new_choices), sep="\n")
 
                     assert (memory.state.solver.satisfiable(extra_constraints=(tuple(self._repeat_constraints)+tuple(new_choices))))
-                    raise ConcretizationException("the address %s cannot be concretized." % addr, new_choices)
-            self.track_values.append(addr==c)
+                    raise ConcretizationException("the address %s cannot be concretized." % addr, new_choices, memory.state)
+            memory.state.concretizations.append(addr==c)
         return [ c ]
 
     def get_unsat_constraints(self, state_constraints, extra_constraints):
@@ -163,6 +169,7 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             return unsat_constraints
 
     def print_debug_output(self, state, child_constraints):
+        import subprocess
         path = list(map(lambda value: hex(value), state.history.bbl_addrs.hardcopy))
         print("Path:", ''.join("\n\t{0}".format(addr) for addr in path))
 
@@ -184,11 +191,77 @@ class ConcretizationException(Exception):
     Raised when there is a concretization failure.
     '''
 
-    def __init__(self, message, new_solutions, *args):
+    def __init__(self, message, new_solutions, failed_state, *args):
         super().__init__(message, *args)
         self.message = message
         self.new_solutions = new_solutions
+        self.failed_state = failed_state
 
     def __str__(self):
         return 'ConcretizationException: %s\nNew solutions:\n%s\n' % (self.message, "\n".join(str(s) for s in self.new_solutions))
 
+
+
+class SimStateTrackConcretizations(SimStatePlugin):
+    def __init__(self, backer=None, map_mem_dict=None):
+        super(SimStateTrackConcretizations, self).__init__()
+        self._backer = backer if backer is not None else []
+        # maps memory read values for replacement
+        self._replacements = map_mem_dict if map_mem_dict is not None else {}
+
+    def set_state(self, state):
+         super(SimStateTrackConcretizations, self).set_state(state)
+
+    def append(self, c):
+        self._backer.append(c)
+
+    def extend(self, l):
+        self._backer.extend(l)
+
+    def clear(self):
+        self._backer.clear()
+
+    @property
+    def track_values(self):
+        return self._backer
+
+    @property
+    def replacements(self):
+        return self._replacements
+
+    def __getitem__(self, k):
+        return self._replacements[k]
+
+    def __setitem__(self, k, v):
+        self._replacements[k] = v
+
+    def __delitem__(self, k):
+        del self._replacements[k]
+
+    def __contains__(self, k):
+        return k in self._replacements
+
+    def keys(self):
+        return self._replacements.keys()
+
+    def values(self):
+        return self._replacements.values()
+
+    def items(self):
+        return self._replacements.items()
+
+    def get(self, k, alt=None):
+        return self._replacements.get(k, alt)
+
+    def pop(self, k, alt=None):
+        return self._replacements.pop(k, alt)
+
+    def dict_clear(self):
+        return self._replacements.clear()
+
+    @SimStatePlugin.memo
+    def copy(self, memo):   # pylint: disable=unused-argument
+        return SimStateTrackConcretizations(list(self._backer), dict(self._replacements))
+
+from angr.sim_state import SimState
+SimState.register_default('concretizations', SimStateTrackConcretizations)
