@@ -79,6 +79,7 @@ def set_state_options(state):
     # try to avoid nondeterministic behavior
     state.options.remove(angr.options.COMPOSITE_SOLVER)
     state.options.add(angr.options.CACHELESS_SOLVER)
+    #state.options.add(angr.options.DOWNSIZE_Z3)
     #state.options.add(angr.options.CONSTRAINT_TRACKING_IN_SOLVER)
     #print(state.options.tally())
 
@@ -89,6 +90,13 @@ def find_exit(state):
 	#print(state.inspect.exit_jumpkind)
 	if not state.inspect.exit_jumpkind == 'Ijk_Sys_syscall':
 		state.inspect.exit_jumpkind = 'Ijk_Exit'
+
+
+def debug_addr(state):
+    print()
+    print("debug_addr")
+    print(state)
+    #print(state.mem[(state.regs.SP_EL0+96)].uint64_t)
 
 
 def check_collision_with_concretization(mem_addr, track_concretization_values):
@@ -156,8 +164,8 @@ def mem_read_after(state):
                 state.add_constraints(mem_expr_constraint)
                 # adds the non-repetition constraint in the concretization strategy
                 if state.inspect.mem_read_address.op == "BVV":
-                    state.memory.read_strategies[0]._repeat_constraints.append(
-                        state.memory.read_strategies[0]._repeat_expr != state.inspect.mem_read_address
+                    state.memory.read_strategies[0]._repeat_constraints.extend(
+                        [paddr.args[0] != state.inspect.mem_read_address for paddr in state.concretizations.track_values]
                     )
 
         state.inspect.mem_read_expr = state.inspect.mem_read_expr.replace_dict(state.concretizations.replacements)
@@ -224,6 +232,8 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
                 continue
             elif name == "pruned":
                 continue
+            #elif not state.satisfiable():
+            #    continue
             else:
                 dict_state["addr"] = state_addr
                 dict_state["path"] = list_addrs
@@ -266,7 +276,7 @@ def run():
     regs = set_registers(birprogjson)
 
     # initializes the angr project
-    proj = angr.Project(binfile, main_opts={'backend': 'bir'})
+    proj = angr.Project(binfile, main_opts={'backend': 'bir'}, load_options={'auto_load_libs': False})
 
     # shadow memory space object
     _shadow_object = ShadowObject(proj.loader)
@@ -285,6 +295,7 @@ def run():
 
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+    #proj.hook(extern_addr, debug_addr)
     #state.inspect.b('mem_write', when=angr.BP_BEFORE, action=mem_write_before)
     #state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
 

@@ -1,4 +1,4 @@
-from angr.concretization_strategies.norepeats import SimConcretizationStrategyNorepeats
+from angr.concretization_strategies import SimConcretizationStrategy
 from angr.errors import SimUnsatError, SimStateError
 import claripy
 
@@ -24,7 +24,7 @@ def filtering_constraints(list_constraints, track_concretization_values):
 
 
 
-class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
+class SimConcretizationStrategyBIR(SimConcretizationStrategy):
 
 
     def __init__(self,
@@ -34,8 +34,10 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                  recent_track_values=None,
                  prog_range_constraints = None,
                  **kwargs):
-        super(SimConcretizationStrategyBIR, self).__init__(repeat_expr=repeat_expr, repeat_constraints=repeat_constraints, **kwargs)
+        super(SimConcretizationStrategyBIR, self).__init__(**kwargs)
         #self.track_values = [] if recent_track_values is None else recent_track_values
+        self._repeat_expr = repeat_expr
+        self._repeat_constraints = [] if repeat_constraints is None else repeat_constraints
         self._addr_ranges = addr_ranges
         self._prog_range_constraints = [] if prog_range_constraints is None else prog_range_constraints
 
@@ -61,9 +63,17 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
             # concretize in the middle
             #addr_constraint2 = claripy.And(claripy.UGT(addr, 0x10000), claripy.ULT(addr, 0xdffffffffffffffe))
 
-            self._repeat_constraints.extend([addr!=previous_addr.args[0]
-                                              for previous_addr in memory.state.concretizations.track_values
-                                              if not memory.state.concretizations.track_values==[]])
+            if (len(list(addr.variables)) == 1):
+                self._repeat_constraints.extend([addr!=previous_addr.args[0]
+                                                  for previous_addr in memory.state.concretizations.track_values
+                                                  if not memory.state.concretizations.track_values==[] 
+                                                  and not list(addr.variables)[0]==list(previous_addr.args[0].variables)[0]])
+            else:
+                wmsg = ''.join("\n\t\t\t{0}".format(str(val)) for val in memory.state.concretizations.track_values)
+                logging.warning(f"SimConcretizationStrategyBIR - address with multiple variables:\n{addr}\nConcretizations:{wmsg}")
+                self._repeat_constraints.extend([addr!=previous_addr.args[0]
+                                                  for previous_addr in memory.state.concretizations.track_values
+                                                  if not memory.state.concretizations.track_values==[]])
 
             child_constraints = tuple(self._repeat_constraints) + (addr_constraint1, addr_constraint2)
             extra_constraints = kwargs.pop('extra_constraints', None)
@@ -114,6 +124,7 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                                     #unsat_constraints = self.get_unsat_constraints(memory.state.solver.constraints, extra_c)
                                     #check_constraints = [rc for rc in self._repeat_constraints if any(rc.cache_key==uc.cache_key for uc in unsat_constraints)]
                                     #assert (len(check_constraints) > 0)
+                                    logging.warning("SimConcretizationStrategyBIR - PATH UNFEASIBLE due to norepeat constraints.")
                                     raise SimStateError("PATH UNFEASIBLE due to norepeat constraints.")
 
                                     '''
@@ -135,6 +146,7 @@ class SimConcretizationStrategyBIR(SimConcretizationStrategyNorepeats):
                                     '''
                     else:
                         #print("\nstate pruned\n")
+                        #self.get_unsat_constraints(memory.state.solver.constraints, child_constraints)
                         raise SimStateError("%s: state pruned." % memory.state)
                         #raise claripy.errors.UnsatError
 
