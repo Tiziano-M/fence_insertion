@@ -176,6 +176,10 @@ class Instruction_LOAD(BIR_Instruction):
         return size
 
     def compute_result(self):
+        if self.block["mem"]["exptype"] != "BExp_Den":
+            raise Exception("BExp_Load with a mem exp different from BExp_Den")
+        self.map_expressions(self.block["mem"], self.irsb_c)
+
         size = self.get_load_size()
         addr = self.map_expressions(self.block["addr"], self.irsb_c)
 
@@ -191,6 +195,7 @@ class Instruction_STORE(BIR_Instruction):
         self.irsb_c = irsb_c
 
     def compute_result(self):
+        self.map_expressions(self.block["mem"], self.irsb_c)
         addr = self.map_expressions(self.block["addr"], self.irsb_c)
 
         val = self.map_expressions(self.block["val"], self.irsb_c)
@@ -314,7 +319,18 @@ class Instruction_DEN(BIR_Instruction):
         val = self.get(REGISTER_NAME, REGISTER_TYPE)
         return val
 
+    def is_mem(self, block):
+        MEM_NAME = block["name"]
+        if MEM_NAME.startswith("MEM"):
+            if "*" in MEM_NAME:
+                MEM_NAME = MEM_NAME.replace("*", "")
+            assert MEM_NAME == "MEM"
+            return True
+        return False
+
     def compute_result(self):
+        if self.is_mem(self.block["var"]):
+            return None
         val = self.get_register(self.block["var"])
         return val
 
