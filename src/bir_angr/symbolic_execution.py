@@ -11,6 +11,7 @@ from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 from bir_angr.shadow_object import ShadowObject
+from bir_angr.trace_exporter import get_input_state, init_trace, save_trace, rosette_input
 
 parser = argparse.ArgumentParser()
 parser.add_argument("entryfilename", help="Json entry point", type=str)
@@ -20,6 +21,7 @@ parser.add_argument('-do', "--debug_out", help="Print a more verbose version of 
 parser.add_argument('-di', "--dump_irsb", help="Print VEX blocks", default=False, action='store_true')
 parser.add_argument('-n', "--num_steps", help="Number of steps", default=None, type=int)
 parser.add_argument('-dc', "--data_constraints", help="Add data section constraints to states ", default=False, action='store_true')
+parser.add_argument('-ce', "--conc_execution", help="Execute a program from two initial states", default=False, action='store_true')
 args = parser.parse_args()
 
 
@@ -27,6 +29,61 @@ args = parser.parse_args()
 def change_simplification():
     from bir_angr.utils.simplification_manager_bir import SimplificationManagerBIR
     claripy.simplifications.simpleton = SimplificationManagerBIR()
+
+
+def set_mem_and_regs(state, input_data):
+    def set_mem(state, mem_map):
+        if "default" not in mem_map.keys():
+            for addr in mem_map.keys():
+                assert int(addr, 2)
+                state.store()
+
+    #print(dir(state.regs))
+    for (k, v) in input_data.items():
+        if k[0] == "x":
+            reg_num = k[1:]
+            try:
+                setattr(state.regs, "R" + reg_num, v)
+            except Exception:
+                raise Exception(f"Register {'R' + reg_num} not found in the state")
+        elif k == "sp":
+            try:
+                state.regs.SP_EL0 = v
+            except Exception:
+                raise Exception(f"Register SP_EL0 not found in the state")
+        elif k == "mem":
+            set_mem(state, v)
+        else:
+            raise Exception("Unknown input data", k)
+
+
+def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces):
+    input_state_data, input_state_id = input_state
+    state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
+    init_regs(state, regs)
+    set_state_options(state)
+    set_mem_and_regs(state, input_state_data)
+    # is this needed?
+    state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+    add_bir_concretization_strategy(state, proj.loader.all_objects, None, [])
+
+    simgr = proj.factory.simulation_manager(state)
+
+    init_trace(json_traces, input_state_id)
+    state_id = 0
+    while True:
+        if len(simgr.active) > 0:
+            simgr.step(n=args.num_steps, avoid=exit_addrs)
+            if (len(simgr.active) == 1 and (hex(simgr.active[0].ip.args[0]).startswith("0x4"))):
+                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs)
+                state_id += 1
+
+            #if len(simgr.active) == 0 and len(simgr.deadended) == 1:
+            #    save_trace(simgr.deadended[0], regs)
+        else:
+            break
+    #print(json.dumps(json_traces, indent=4))
+    return
 
 
 def extract_data_constraints(binfile, dump_data=False, dump_constraints=False):
@@ -73,8 +130,12 @@ def init_regs(state, regs):
 
 def set_state_options(state):
     state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
-    state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
-    state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
+    if args.conc_execution:
+        state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
+        state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
+    else:
+        state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
+        state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
 
     # try to avoid nondeterministic behavior
     state.options.remove(angr.options.COMPOSITE_SOLVER)
@@ -287,6 +348,15 @@ def run():
     # sets addresses for shadow instructions in an external region
     shadow_addr = _shadow_object.min_addr - proj.loader.main_object.min_addr
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
+
+    if args.conc_execution:
+        (input1, input2) = (get_input_state(entry, "input_1"), get_input_state(entry, "input_2"))
+        json_traces = {}
+        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces)
+        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces)
+        if False: print(json.dumps(json_traces, indent=4))
+        rosette_input(json_traces)
+        return
 
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
