@@ -22,6 +22,7 @@ parser.add_argument('-di', "--dump_irsb", help="Print VEX blocks", default=False
 parser.add_argument('-n', "--num_steps", help="Number of steps", default=None, type=int)
 parser.add_argument('-dc', "--data_constraints", help="Add data section constraints to states ", default=False, action='store_true')
 parser.add_argument('-ce', "--conc_execution", help="Execute a program from two initial states", default=False, action='store_true')
+parser.add_argument('-eop', "--extract_operands", help="Extract operands", default=False, action='store_true')
 args = parser.parse_args()
 
 
@@ -35,8 +36,9 @@ def set_mem_and_regs(state, input_data):
     def set_mem(state, mem_map):
         if "default" not in mem_map.keys():
             for addr in mem_map.keys():
-                assert int(addr, 2)
-                state.store()
+                #assert int(addr, 2)
+                #state.mem[2149734912].uint64_t = 3
+                raise NotImplementedError
 
     #print(dir(state.regs))
     for (k, v) in input_data.items():
@@ -57,12 +59,13 @@ def set_mem_and_regs(state, input_data):
             raise Exception("Unknown input data", k)
 
 
-def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces):
+def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insns):
     input_state_data, input_state_id = input_state
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
+    regs = regs + [{"name": "ip", 'type': 'imm64'}]
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     add_bir_concretization_strategy(state, proj.loader.all_objects, None, [])
@@ -71,19 +74,34 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces):
 
     init_trace(json_traces, input_state_id)
     state_id = 0
+    insn = next((i for i in insns if i.addr == state.addr), None)
+    save_trace(json_traces, input_state_id, state_id, state, regs, insn)
     while True:
         if len(simgr.active) > 0:
             simgr.step(n=args.num_steps, avoid=exit_addrs)
             if (len(simgr.active) == 1 and (hex(simgr.active[0].ip.args[0]).startswith("0x4"))):
-                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs)
                 state_id += 1
-
-            #if len(simgr.active) == 0 and len(simgr.deadended) == 1:
-            #    save_trace(simgr.deadended[0], regs)
+                insn = next((i for i in insns if i.addr == simgr.active[0].addr), None)
+                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, insn)
+            elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
+                #save_trace(simgr.deadended[0], regs)
+                continue
+            elif len(simgr.active) > 1:
+                raise Exception("Unexpected states: ", simgr)
         else:
             break
     #print(json.dumps(json_traces, indent=4))
     return
+
+
+def disassemble_prog(binary, entry_addr):
+    from angr.analyses import Disassembly
+    from angr.analyses.disassembly import Instruction
+
+    p = angr.Project(binary, load_options={'auto_load_libs': False})
+    disasm = p.analyses[Disassembly].prep()(ranges=[(p.loader.main_object.min_addr, p.loader.main_object.max_addr+1)])
+    insns = [r for r in disasm.raw_result if isinstance(r, Instruction)]
+    return insns
 
 
 def extract_data_constraints(binfile, dump_data=False, dump_constraints=False):
@@ -132,7 +150,7 @@ def set_state_options(state):
     state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
     if args.conc_execution:
         state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
-        state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
+        state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_REGISTERS)
     else:
         state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
         state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
@@ -350,12 +368,18 @@ def run():
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
 
     if args.conc_execution:
-        (input1, input2) = (get_input_state(entry, "input_1"), get_input_state(entry, "input_2"))
+        exp = entry["experiment"]
+        (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
+        assert (input1 and input2) is not None
+        insns = None
+        if args.extract_operands:
+            insns = disassemble_prog(binfile, entry_addr)
+
         json_traces = {}
-        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces)
-        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces)
+        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns)
+        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns)
         if False: print(json.dumps(json_traces, indent=4))
-        rosette_input(json_traces)
+        rosette_input(json_traces, exp["id"], exp["result"])
         return
 
     # sets the initial state and registers

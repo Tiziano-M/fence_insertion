@@ -29,12 +29,13 @@ def init_trace(jsonout, run_id):
     jsonout[run_id] = {"states" : []}
     return jsonout
 
-def save_trace(jsonout, run_id, state_id, state, regs):
+def save_trace(jsonout, run_id, state_id, state, regs, insn):
     dict_state = {}
     dict_state["state_id"] = state_id
     dict_state["registers"] = save_regs(state, regs)
     dict_state["memory"] = save_mem(state)
     dict_state["observations"] = save_obs(state)
+    dict_state["operands"] = save_operands(state, insn) if insn is not None else []
     jsonout[run_id]["states"].append(dict_state.copy())
     return jsonout
 
@@ -55,7 +56,8 @@ def save_regs(state, regs):
     return list_regs
 
 def save_mem(state):
-    default_mem = 0
+    default_mem = {}
+    #default_mem = {0: {"value": [1, 64], "size": 64}, 80: {"value": [2, 64], "size": 64}}
     return default_mem
 
 def save_obs(state):    
@@ -70,42 +72,112 @@ def save_obs(state):
             list_obs.append(obs_v)
     return list_obs
 
-def rosette_input(json_out):
+def save_operands(state, insn):
+    def set_reg_op_from_state(state, operands):
+        roperands = []
+        for reg in operands:
+            try:
+                if reg[0] == "x":
+                    reg_num = reg[1:]
+                    regname = "R" + reg_num
+                elif reg == "sp":
+                    regname = "SP_EL0"
+                elif reg.startswith("ProcState_") and (reg[-1] in ["C", "N", "V", "Z"]):
+                    regname = reg
+                else:
+                    raise Exception("Unknown register ", reg)
+
+                val = getattr(state.regs, regname)
+                if val.symbolic:
+                    roperands.append((regname, (0, val.size())))
+                else:
+                    assert val.size() == val.args[1]
+                    roperands.append((regname, (val.args[0], val.args[1])))
+            except Exception:
+                raise Exception(f"Error with register {reg_name} in state {state}")
+        return roperands
+
+    def extract_reg_operands(insn, operands):
+        for operand in insn.operands:
+            if isinstance(operand, angr.analyses.disassembly.RegisterOperand):
+                if isinstance(operand.register, angr.analyses.disassembly.Register):
+                    operands.add(operand.register.reg)
+            elif isinstance(operand, angr.analyses.disassembly.MemoryOperand):
+                for val_op in operand.values:
+                    if isinstance(val_op, angr.analyses.disassembly.Register):
+                        operands.add(val_op.reg)
+            elif isinstance(operand, angr.analyses.disassembly.ConstantOperand):
+                continue
+            else:
+                raise Exception("Unknown operand: ", operand)
+        return operands
+
+    operands = extract_reg_operands(insn, set())
+    if insn.insn.update_flags:
+        operands.extend(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
+    return set_reg_op_from_state(state, operands)
+
+def rosette_input(json_out, exp_id, exp_res):
+    if exp_res == True:
+        exp_ty = "p"
+    elif exp_res == False:
+        exp_ty = "c"
+    else:
+        raise Exception(f"Unexpected experiment result: {exp_res}")
+
     filename = "input.rkt"
-    text_run1 = rosette_input_text(json_out[0]["states"], 0)
-    text_run2 = rosette_input_text(json_out[1]["states"], 1)
+    text_run1 = rosette_input_text(json_out[0]["states"], 0, exp_id, exp_ty)
+    text_run2 = rosette_input_text(json_out[1]["states"], 1, exp_id, exp_ty)
     with open(filename, "w") as f:   
         f.write(text_run1 + text_run2)
 
-def rosette_input_text(states, run_id):
+def rosette_input_text(states, run_id, exp_id, exp_ty):
     state_ids = []
     text = ""
     for state in states:
-        state_id_txt = f"r{run_id}_{state['state_id']}"
+        state_id_txt = f"{exp_ty}{exp_id}-r{run_id}_{state['state_id']}"
         text += f"\n(define {state_id_txt} (make-run\t ; Registers\n"
         indentation = ''.join([' ' for _ in range(len(f"(define {state_id_txt} "))])
         text += regs_text(state["registers"], indentation)
-        #text += mem_text(state["memory"], indentation)
-        text += obs_text(state["observations"], indentation)
-        text += ")\n"
+        text += mem_text(state["memory"], indentation)
+        text += operands_text(state["operands"], indentation)
+        #text += obs_text(state["observations"], indentation)
+        text += "))\n"
         state_ids.append(state_id_txt)
     state_ids_txt = " ".join(state_id for state_id in state_ids)
-    text += f"\n(define r{run_id} (list {state_ids_txt}))\n\n"
+    text += f"\n(define {exp_ty}{exp_id}-r{run_id} (list {state_ids_txt}))\n\n"
     return text
 
 def regs_text(regs_json, indentation):
-    regs = f"{indentation}(list\n"
+    regs = f"{indentation}(vector-immutable\n"
     for reg in regs_json:
-        regs += f"{indentation}   (REG (cons {reg[0]} (bv {reg[1][0]} (bitvector {reg[1][1]}))))\n"
+        regs += f"{indentation}   (REG (bv {reg[1][0]} (bitvector {reg[1][1]})))\t; Register: {reg[0]}\n"
     return f"\t{regs}{indentation}   )\n\n"
 
 def mem_text(mem_json, indentation):
-    pass
+    mem = f"{indentation}; Memory\n"
+    mem += f"{indentation}  (vector-immutable\n"
+    if mem_json == {}:
+        mem += f"{indentation}  '()\n"
+    else:
+        for (addr, val) in mem_json.items():
+            mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
+    return f"\t{mem}{indentation}   )\n\n"
 
 def obs_text(obs_json, indentation):
     obss = f"{indentation}; Obs\n"
-    obss += f"{indentation}  (list\n"
+    obss += f"{indentation}  (vector-immutable\n"
     for obs in obs_json:
-        obss += f"{indentation}   (bv {obs[0]} (bitvector {obs[1]})\n"
-    return f"\t{obss}{indentation}   )\n\n"
+        obss += f"{indentation}   (bv {obs[0]} (bitvector {obs[1]}))\n"
+    return f"\t{obss}{indentation}   )\n"
+
+def operands_text(operands_json, indentation):
+    opss = f"{indentation}; Operands\n"
+    opss += f"{indentation}  (vector-immutable\n"
+    if operands_json == []:
+        opss += f"{indentation}  '()\n"
+    else:
+        for ops in operands_json:
+            opss += f"{indentation}   (bv {ops[1][0]} (bitvector {ops[1][1]}))\t; Operand: {ops[0]}\n"
+    return f"\t{opss}{indentation}   )\n"
 

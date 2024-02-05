@@ -2,7 +2,7 @@
 requires = [
     "setuptools>=42",
     "wheel",
-    "angr==9.0.9572"
+    "angr==9.2.7"
 ]
 build-backend = "setuptools.build_meta"
 
