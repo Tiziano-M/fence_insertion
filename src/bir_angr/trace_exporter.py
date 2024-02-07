@@ -32,6 +32,8 @@ def init_trace(jsonout, run_id):
 def save_trace(jsonout, run_id, state_id, state, regs, insn):
     dict_state = {}
     dict_state["state_id"] = state_id
+    dict_state["instruction"] = insn.render()[0]
+    dict_state["instr_address"] = insn.addr
     dict_state["registers"] = save_regs(state, regs)
     dict_state["memory"] = save_mem(state)
     dict_state["observations"] = save_obs(state)
@@ -114,7 +116,7 @@ def save_operands(state, insn):
 
     operands = extract_reg_operands(insn, set())
     if insn.insn.update_flags:
-        operands.extend(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
+        operands.update(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
     return set_reg_op_from_state(state, operands)
 
 def rosette_input(json_out, exp_id, exp_res):
@@ -136,10 +138,14 @@ def rosette_input_text(states, run_id, exp_id, exp_ty):
     text = ""
     for state in states:
         state_id_txt = f"{exp_ty}{exp_id}-r{run_id}_{state['state_id']}"
-        text += f"\n(define {state_id_txt} (make-run\t ; Registers\n"
         indentation = ''.join([' ' for _ in range(len(f"(define {state_id_txt} "))])
+
+        text += "\n"
+        text += instruction_text(state["instruction"], indentation)
+        text += f"(define {state_id_txt} (make-run\t ; Registers\n"
         text += regs_text(state["registers"], indentation)
         text += mem_text(state["memory"], indentation)
+        text += iaddr_text(state["instr_address"], indentation)
         text += operands_text(state["operands"], indentation)
         #text += obs_text(state["observations"], indentation)
         text += "))\n"
@@ -147,6 +153,9 @@ def rosette_input_text(states, run_id, exp_id, exp_ty):
     state_ids_txt = " ".join(state_id for state_id in state_ids)
     text += f"\n(define {exp_ty}{exp_id}-r{run_id} (list {state_ids_txt}))\n\n"
     return text
+
+def instruction_text(instr_json, indentation):
+    return f"; Instruction: {instr_json}\n"
 
 def regs_text(regs_json, indentation):
     regs = f"{indentation}(vector-immutable\n"
@@ -163,6 +172,11 @@ def mem_text(mem_json, indentation):
         for (addr, val) in mem_json.items():
             mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
     return f"\t{mem}{indentation}   )\n\n"
+
+def iaddr_text(iaddr_json, indentation):
+    iaddr = f"{indentation}; Instruction Address\n"
+    iaddr += f"{indentation}  (bv {iaddr_json} (bitvector 64))\n"
+    return f"\t{iaddr}\n"
 
 def obs_text(obs_json, indentation):
     obss = f"{indentation}; Obs\n"

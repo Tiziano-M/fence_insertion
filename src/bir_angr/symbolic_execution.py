@@ -61,6 +61,9 @@ def set_mem_and_regs(state, input_data):
 
 def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insns):
     input_state_data, input_state_id = input_state
+    if not hex(entry_addr).startswith("0x4"):
+        raise Exception("Unexpected entry address: ", entry_addr)
+
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
     set_state_options(state)
@@ -68,21 +71,25 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
     regs = regs + [{"name": "ip", 'type': 'imm64'}]
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
+    state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
     add_bir_concretization_strategy(state, proj.loader.all_objects, None, [])
 
     simgr = proj.factory.simulation_manager(state)
 
     init_trace(json_traces, input_state_id)
     state_id = 0
-    insn = next((i for i in insns if i.addr == state.addr), None)
-    save_trace(json_traces, input_state_id, state_id, state, regs, insn)
     while True:
         if len(simgr.active) > 0:
             simgr.step(n=args.num_steps, avoid=exit_addrs)
             if (len(simgr.active) == 1 and (hex(simgr.active[0].ip.args[0]).startswith("0x4"))):
-                state_id += 1
-                insn = next((i for i in insns if i.addr == simgr.active[0].addr), None)
+                addr_history = simgr.active[0].history.bbl_addrs.hardcopy
+                insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith('0x4')), None)
+                insn = next((i for i in insns if i.addr == insn_addr), None)
+                if args.extract_operands and (insn is None):
+                    raise Exception(f"Instruction not found: {hex(insn_addr)}")
+
                 save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, insn)
+                state_id += 1
             elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
                 #save_trace(simgr.deadended[0], regs)
                 continue
@@ -94,7 +101,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
     return
 
 
-def disassemble_prog(binary, entry_addr):
+def disassemble_prog(binary):
     from angr.analyses import Disassembly
     from angr.analyses.disassembly import Instruction
 
@@ -169,6 +176,7 @@ def find_exit(state):
 	#print(state.inspect.exit_jumpkind)
 	if not state.inspect.exit_jumpkind == 'Ijk_Sys_syscall':
 		state.inspect.exit_jumpkind = 'Ijk_Exit'
+	state.inspect.exit_jumpkind = 'Ijk_Exit'
 
 
 def debug_addr(state):
@@ -373,7 +381,7 @@ def run():
         assert (input1 and input2) is not None
         insns = None
         if args.extract_operands:
-            insns = disassemble_prog(binfile, entry_addr)
+            insns = disassemble_prog(binfile)
 
         json_traces = {}
         conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns)
