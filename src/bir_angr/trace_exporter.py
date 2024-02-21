@@ -141,25 +141,24 @@ def save_operands(state, insn):
         operands.update(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
     return set_reg_op_from_state(state, operands)
 
-def rosette_input(json_out, exp_id, exp_res):
-    if exp_res == True:
-        exp_ty = "p"
-    elif exp_res == False:
-        exp_ty = "c"
+def rosette_input(json_out, exp_id, exp_res, exp_filename):
+    if exp_res == "true":
+        exp_typ = "p"
+    elif exp_res == "false":
+        exp_typ = "c"
     else:
         raise Exception(f"Unexpected experiment result: {exp_res}")
 
-    filename = "input.rkt"
-    text_run1 = rosette_input_text(json_out[0]["states"], 0, exp_id, exp_ty)
-    text_run2 = rosette_input_text(json_out[1]["states"], 1, exp_id, exp_ty)
-    with open(filename, "w") as f:   
+    text_run1 = rosette_input_text(json_out[0]["states"], 0, exp_id, exp_typ)
+    text_run2 = rosette_input_text(json_out[1]["states"], 1, exp_id, exp_typ)
+    with open(exp_filename, "w") as f:
         f.write(text_run1 + text_run2)
 
-def rosette_input_text(states, run_id, exp_id, exp_ty):
+def rosette_input_text(states, run_id, exp_id, exp_typ):
     state_ids = []
     text = ""
     for state in states:
-        state_id_txt = f"{exp_ty}{exp_id}-r{run_id}_{state['state_id']}"
+        state_id_txt = f"{exp_typ}{exp_id}-r{run_id}_{state['state_id']}"
         indentation = ''.join([' ' for _ in range(len(f"(define {state_id_txt} "))])
 
         text += "\n"
@@ -173,7 +172,7 @@ def rosette_input_text(states, run_id, exp_id, exp_ty):
         text += "))\n"
         state_ids.append(state_id_txt)
     state_ids_txt = " ".join(state_id for state_id in state_ids)
-    text += f"\n(define {exp_ty}{exp_id}-r{run_id} (list {state_ids_txt}))\n\n"
+    text += f"\n(define {exp_typ}{exp_id}-r{run_id} (list {state_ids_txt}))\n\n"
     return text
 
 def instruction_text(instr_json, indentation):
