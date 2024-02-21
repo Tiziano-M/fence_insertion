@@ -1,6 +1,16 @@
 import angr
 
-  
+
+registers = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "type": "imm1"}, {"name": "ProcState_V", "type": "imm1"}, 
+             {"name": "ProcState_Z", "type": "imm1"}, {"name": "SP_EL0", "type": "imm64"}, {"name": "R1", "type": "imm64"}, 
+             {"name": "R2", "type": "imm64"}, {"name": "R3", "type": "imm64"}, {"name": "R4", "type": "imm64"}, {"name": "R5", "type": "imm64"}, 
+             {"name": "R6", "type": "imm64"}, {"name": "R7", "type": "imm64"}, {"name": "R8", "type": "imm64"}, {"name": "R9", "type": "imm64"}, 
+             {"name": "R10", "type": "imm64"}, {"name": "R11", "type": "imm64"}, {"name": "R12", "type": "imm64"}, {"name": "R13", "type": "imm64"}, 
+             {"name": "R14", "type": "imm64"}, {"name": "R15", "type": "imm64"}, {"name": "R16", "type": "imm64"}, {"name": "R17", "type": "imm64"}, 
+             {"name": "R18", "type": "imm64"}, {"name": "R19", "type": "imm64"}, {"name": "R20", "type": "imm64"}, {"name": "R21", "type": "imm64"}, 
+             {"name": "R22", "type": "imm64"}, {"name": "R23", "type": "imm64"}, {"name": "R24", "type": "imm64"}, {"name": "R25", "type": "imm64"}, 
+             {"name": "R26", "type": "imm64"}, {"name": "R27", "type": "imm64"}, {"name": "R28", "type": "imm64"}, {"name": "R29", "type": "imm64"}, 
+             {"name": "R30", "type": "imm64"}, {"name": "R31", "type": "imm64"}, {"name": "ip", "type": "imm64"}]
 
 # https://github.com/kth-step/EmbExp-Logs/blob/master/lib/experiment.py
 def _proc_input_state(inp, statename):
@@ -29,19 +39,22 @@ def init_trace(jsonout, run_id):
     jsonout[run_id] = {"states" : []}
     return jsonout
 
-def save_trace(jsonout, run_id, state_id, state, regs, insn):
+def save_trace(jsonout, run_id, state_id, state, regs, all_regs, insn):
     dict_state = {}
     dict_state["state_id"] = state_id
     dict_state["instruction"] = insn.render()[0]
     dict_state["instr_address"] = insn.addr
-    dict_state["registers"] = save_regs(state, regs)
+    dict_state["registers"] = save_regs(state, regs, all_regs)
     dict_state["memory"] = save_mem(state)
     dict_state["observations"] = save_obs(state)
     dict_state["operands"] = save_operands(state, insn) if insn is not None else []
     jsonout[run_id]["states"].append(dict_state.copy())
     return jsonout
 
-def save_regs(state, regs):
+def save_regs(state, regs, all_regs):
+    if all_regs:
+        regs = registers
+
     list_regs = []
     for reg in regs:
         reg_n = reg["name"]
@@ -54,7 +67,16 @@ def save_regs(state, regs):
                 reg_v = (val.args[0], val.args[1])
             list_regs.append((reg_n, reg_v))
         except Exception:
-            raise Exception(f"Register {reg_n} not found in the state")
+            if all_regs:
+                if reg["type"] == "imm64":
+                    sz = 64
+                elif reg["type"] == "imm1":
+                    sz = 8
+                else:
+                    raise Exception(f"Unexpected register type {reg}")
+                list_regs.append((reg["name"], ((0, sz))))
+            else:
+                raise Exception(f"Register {reg_n} not found in the state")
     return list_regs
 
 def save_mem(state):

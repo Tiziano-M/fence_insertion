@@ -69,6 +69,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
     regs = regs + [{"name": "ip", 'type': 'imm64'}]
+    all_regs = True
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
@@ -88,7 +89,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
                 if args.extract_operands and (insn is None):
                     raise Exception(f"Instruction not found: {hex(insn_addr)}")
 
-                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, insn)
+                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, all_regs, insn)
                 state_id += 1
             elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
                 #save_trace(simgr.deadended[0], regs)
@@ -376,18 +377,20 @@ def run():
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
 
     if args.conc_execution:
-        exp = entry["experiment"]
-        (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
-        assert (input1 and input2) is not None
+        exps = entry["experiments"]
         insns = None
         if args.extract_operands:
             insns = disassemble_prog(binfile)
 
-        json_traces = {}
-        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns)
-        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns)
-        if False: print(json.dumps(json_traces, indent=4))
-        rosette_input(json_traces, exp["id"], exp["result"])
+        for exp in exps:
+            (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
+            assert (input1 and input2) is not None
+
+            json_traces = {}
+            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns)
+            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns)
+            if False: print(json.dumps(json_traces, indent=4))
+            rosette_input(json_traces, exp["id"], exp["result"], exp["filename"])
         return
 
     # sets the initial state and registers
