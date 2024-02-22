@@ -39,15 +39,16 @@ def init_trace(jsonout, run_id):
     jsonout[run_id] = {"states" : []}
     return jsonout
 
-def save_trace(jsonout, run_id, state_id, state, regs, all_regs, insn):
+def save_trace(jsonout, run_id, state_id, state, regs, all_regs, insn, extract_operands, obs_operand_id):
     dict_state = {}
     dict_state["state_id"] = state_id
     dict_state["instruction"] = insn.render()[0]
     dict_state["instr_address"] = insn.addr
     dict_state["registers"] = save_regs(state, regs, all_regs)
     dict_state["memory"] = save_mem(state)
-    dict_state["observations"] = save_obs(state)
-    dict_state["operands"] = save_operands(state, insn) if insn is not None else []
+    #dict_state["observations"] = save_obs(state)
+    #dict_state["operands"] = save_operands(state, insn) if insn is not None else []
+    dict_state["operands"] = save_obs_operands(state, insn, extract_operands, obs_operand_id)
     jsonout[run_id]["states"].append(dict_state.copy())
     return jsonout
 
@@ -94,6 +95,26 @@ def save_obs(state):
                 assert obs.size() == obs.args[1]
                 obs_v = (obs.args[0], obs.args[1])
             list_obs.append(obs_v)
+    return list_obs
+
+def save_obs_operands(state, insn, extract_operands, obs_opernad_id):
+    if obs_opernad_id is None:
+        raise Exception("Operand id is not set")
+
+    list_obs = []
+    for (obs_id,_,obs_list,_) in state.observations.list_obs:
+        if str(obs_id) == obs_opernad_id:
+            for obs in obs_list:
+                if obs.symbolic:
+                    if extract_operands:
+                        obs_v = (state.solver.eval(obs), obs.size())
+                    else:
+                        raise Exception(f"Observation value not as expected: {obs}")
+                else:
+                    assert obs.size() == obs.args[1]
+                    obs_v = (obs.args[0], obs.args[1])
+                list_obs.append(obs_v)
+    state.observations.list_obs.clear()
     return list_obs
 
 def save_operands(state, insn):
@@ -167,7 +188,7 @@ def rosette_input_text(states, run_id, exp_id, exp_typ):
         text += regs_text(state["registers"], indentation)
         text += mem_text(state["memory"], indentation)
         text += iaddr_text(state["instr_address"], indentation)
-        text += operands_text(state["operands"], indentation)
+        text += obs_operands_text(state["operands"], indentation)
         #text += obs_text(state["observations"], indentation)
         text += "))\n"
         state_ids.append(state_id_txt)
@@ -213,6 +234,16 @@ def operands_text(operands_json, indentation):
         opss += f"{indentation}  '()\n"
     else:
         for ops in operands_json:
-            opss += f"{indentation}   (bv {ops[1][0]} (bitvector {ops[1][1]}))\t; Operand: {ops[0]}\n"
+            opss += f"{indentation}   (OPERAND (bv {ops[1][0]} (bitvector {ops[1][1]})))\t; Operand: {ops[0]}\n"
+    return f"\t{opss}{indentation}   )\n"
+
+def obs_operands_text(operands_json, indentation):
+    opss = f"{indentation}; Operands\n"
+    opss += f"{indentation}  (vector-immutable\n"
+    if operands_json == []:
+        opss += f"{indentation}  '()\n"
+    else:
+        for ops in operands_json:
+            opss += f"{indentation}   (OPERAND (bv {ops[0]} (bitvector {ops[1]})))\n"
     return f"\t{opss}{indentation}   )\n"
 

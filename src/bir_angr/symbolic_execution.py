@@ -59,7 +59,7 @@ def set_mem_and_regs(state, input_data):
             raise Exception("Unknown input data", k)
 
 
-def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insns):
+def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insns, obs_operand_id):
     input_state_data, input_state_id = input_state
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
@@ -89,7 +89,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
                 if args.extract_operands and (insn is None):
                     raise Exception(f"Instruction not found: {hex(insn_addr)}")
 
-                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, all_regs, insn)
+                save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, all_regs, insn, args.extract_operands, obs_operand_id)
                 state_id += 1
             elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
                 #save_trace(simgr.deadended[0], regs)
@@ -381,14 +381,15 @@ def run():
         insns = None
         if args.extract_operands:
             insns = disassemble_prog(binfile)
-
+        target_obsoperandid = "2"
+        obs_operand_id = next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None)
         for exp in exps:
             (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
             assert (input1 and input2) is not None
 
             json_traces = {}
-            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns)
-            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns)
+            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns, obs_operand_id)
+            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns, obs_operand_id)
             if False: print(json.dumps(json_traces, indent=4))
             rosette_input(json_traces, exp["id"], exp["result"], exp["filename"])
         return
