@@ -459,6 +459,8 @@ class Instruction_OBSERVE(BIR_Instruction):
         self.put(self.constant(1, Type.int_64), 'syscall_num')
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
+            if obs.ty == Type.int_1:
+                obs = obs.cast_to(Type.int_64)
             self.put(obs, 'obs')
             self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
