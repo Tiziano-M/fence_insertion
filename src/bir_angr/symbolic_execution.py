@@ -34,11 +34,14 @@ def change_simplification():
 
 def set_mem_and_regs(state, input_data):
     def set_mem(state, mem_map):
-        if "default" not in mem_map.keys():
-            for addr in mem_map.keys():
-                #assert int(addr, 2)
-                #state.mem[2149734912].uint64_t = 3
-                raise NotImplementedError
+        if len(mem_map) == 1:
+            assert "default" in mem_map.keys()
+        else:
+            #raise NotImplementedError
+            def_val = mem_map.pop("default")
+            assert def_val == 0
+            for (addr,val) in mem_map.items():
+                state.mem[addr].uint8_t = val
 
     #print(dir(state.regs))
     for (k, v) in input_data.items():
