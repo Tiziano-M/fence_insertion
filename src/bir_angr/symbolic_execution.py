@@ -12,6 +12,7 @@ from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 from bir_angr.shadow_object import ShadowObject
 from bir_angr.trace_exporter import get_input_state, init_trace, save_trace, rosette_input
+from bir_angr.default_filler_memory import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("entryfilename", help="Json entry point", type=str)
@@ -34,12 +35,15 @@ def change_simplification():
 
 def set_mem_and_regs(state, input_data):
     def set_mem(state, mem_map):
-        if len(mem_map) == 1:
-            assert "default" in mem_map.keys()
-        else:
-            #raise NotImplementedError
-            def_val = mem_map.pop("default")
-            assert def_val == 0
+        def_val = mem_map.pop("default")
+        if def_val == 1:
+            state.options.remove(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
+            state.options.register_bool_option(ONE_FILL_UNCONSTRAINED_MEMORY)
+            state.options.add(ONE_FILL_UNCONSTRAINED_MEMORY)
+        elif def_val != 0:
+            raise Exception(f"Unexpected default memory value: {def_val}")
+
+        if len(mem_map) != 0:
             for (addr,val) in mem_map.items():
                 state.mem[addr].uint8_t = val
 
@@ -67,7 +71,9 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
 
-    state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
+    state = proj.factory.entry_state(addr=entry_addr,
+                                     remove_options=angr.options.simplification,
+                                     plugins={"memory": DefaultMemoryFiller(cle_memory_backer=proj.loader, memory_id='mem')})
     init_regs(state, regs)
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
