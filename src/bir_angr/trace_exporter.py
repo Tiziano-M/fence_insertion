@@ -85,25 +85,31 @@ def save_mem(state):
     #default_mem = {0: {"value": [1, 64], "size": 64}, 80: {"value": [2, 64], "size": 64}}
     return default_mem
 
-def save_obs(state):    
-    list_obs = []
-    for (_,_,obs_list,_) in state.observations.list_obs:
+def save_obs(state, obs_json, run_id, obs_operand_id):
+    obs_json[run_id] = []
+    for (obs_id,obs_cond,obs_list,_) in state.observations.list_obs:
+        obsjson = {}
+        obsjson["obs_id"] = obs_id
+        obsjson["obs_cond"] = state.solver.eval(obs_cond)
+        obsjson["obs_list"] = []
         for obs in obs_list:
             if obs.symbolic:
-                raise Exception(f"Observation value not as expected: {obs}")
+                if str(obs_id) != obs_operand_id:
+                    raise Exception(f"Observation value not as expected: {obs}")
             else:
                 assert obs.size() == obs.args[1]
                 obs_v = (obs.args[0], obs.args[1])
-            list_obs.append(obs_v)
-    return list_obs
+                obsjson["obs_list"].append(obs_v)
+        obs_json[run_id].append(obsjson)
+    return obs_json[run_id]
 
-def save_obs_operands(state, insn, extract_operands, obs_opernad_id):
-    if obs_opernad_id is None:
+def save_obs_operands(state, insn, extract_operands, obs_operand_id):
+    if obs_operand_id is None:
         raise Exception("Operand id is not set")
 
     list_obs = []
     for (obs_id,_,obs_list,_) in state.observations.list_obs:
-        if str(obs_id) == obs_opernad_id:
+        if str(obs_id) == obs_operand_id:
             for obs in obs_list:
                 if obs.symbolic:
                     if extract_operands:
@@ -161,6 +167,23 @@ def save_operands(state, insn):
     if insn.insn.update_flags:
         operands.update(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
     return set_reg_op_from_state(state, operands)
+
+def compare_obs(obs_json, obs_base_id):
+    obslist1 = obs_json[0]
+    obslist2 = obs_json[1]
+
+    assert len(obslist1) == len(obslist2)
+    for obs1,obs2 in zip(obslist1, obslist2):
+        if obs1["obs_id"] == 0 and obs2["obs_id"] == 0:
+            assert obs1["obs_cond"] == 1 and obs2["obs_cond"] == 1
+            assert len(obs1["obs_list"]) == len(obs2["obs_list"])
+            for obss1,obss2 in zip(obs1["obs_list"], obs2["obs_list"]):
+                #print(obss1,obss2)
+                assert obss1[1] == obss2[1]
+                if obss1[0] != obss2[0]:
+                    return False
+    return True
+
 
 def rosette_input(json_out, exp_id, exp_res, exp_filename):
     if exp_res == "true":
