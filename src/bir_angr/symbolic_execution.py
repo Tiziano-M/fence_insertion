@@ -38,12 +38,11 @@ def change_simplification():
 def set_mem_and_regs(state, input_data):
     def set_mem(state, mem_map):
         def_val = mem_map.pop("default")
-        if def_val == 1:
+        if def_val != 0:
             state.options.remove(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
-            state.options.register_bool_option(ONE_FILL_UNCONSTRAINED_MEMORY)
-            state.options.add(ONE_FILL_UNCONSTRAINED_MEMORY)
-        elif def_val != 0:
-            raise Exception(f"Unexpected default memory value: {def_val}")
+            state.options.add(DEFVAL_FILL_UNCONSTRAINED_MEMORY)
+            assert 0 <= def_val <= 255
+            state.memory._defval = def_val
 
         if len(mem_map) != 0:
             for (addr,val) in mem_map.items():
