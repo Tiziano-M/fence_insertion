@@ -94,12 +94,11 @@ def save_obs(state, obs_json, run_id, obs_operand_id):
         obsjson["obs_list"] = []
         for obs in obs_list:
             if obs.symbolic:
-                if str(obs_id) != obs_operand_id:
-                    raise Exception(f"Observation value not as expected: {obs}")
+                obs_v = (state.solver.eval(obs), obs.size())
             else:
                 assert obs.size() == obs.args[1]
                 obs_v = (obs.args[0], obs.args[1])
-                obsjson["obs_list"].append(obs_v)
+            obsjson["obs_list"].append(obs_v)
         obs_json[run_id].append(obsjson)
     return obs_json[run_id]
 
