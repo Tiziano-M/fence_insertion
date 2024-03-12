@@ -415,7 +415,7 @@ def run():
 
             if args.compare_obs:
                 if False: print(json.dumps(obs_json, indent=4))
-                res = compare_obs(obs_json, obs_base_id)
+                res = compare_obs(obs_json, int(obs_base_id))
                 count_obs_eq[res].append(exp["id"])
         if args.compare_obs:
             print(count_obs_eq)

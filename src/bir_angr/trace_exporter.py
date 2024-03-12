@@ -173,7 +173,7 @@ def compare_obs(obs_json, obs_base_id):
 
     assert len(obslist1) == len(obslist2)
     for obs1,obs2 in zip(obslist1, obslist2):
-        if obs1["obs_id"] == 0 and obs2["obs_id"] == 0:
+        if obs1["obs_id"] == obs_base_id and obs2["obs_id"] == obs_base_id:
             assert obs1["obs_cond"] == 1 and obs2["obs_cond"] == 1
             assert len(obs1["obs_list"]) == len(obs2["obs_list"])
             for obss1,obss2 in zip(obs1["obs_list"], obs2["obs_list"]):
