@@ -67,7 +67,7 @@ def set_mem_and_regs(state, input_data):
             raise Exception("Unknown input data", k)
 
 
-def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id):
+def conc_exec(proj, input_state, regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id):
     input_state_data, input_state_id = input_state
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
@@ -80,7 +80,6 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, json_traces, insn
     set_mem_and_regs(state, input_state_data)
 
     regs = regs + [{"name": "ip", 'type': 'imm64'}]
-    all_regs = True
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
@@ -398,6 +397,11 @@ def run():
         target_obsoperandid = "2"
         obs_operand_id = next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None)
 
+        all_regs = True
+        if "registers" in entry:
+            regs = entry["registers"]
+            all_regs = False
+
         if args.compare_obs:
             count_obs_eq = {True: [], False: []}
             obs_base_id = next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == "0"), None)
@@ -407,11 +411,11 @@ def run():
 
             obs_json = {}
             json_traces = {}
-            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
-            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
+            conc_exec(proj, (input1, 0), regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
+            conc_exec(proj, (input2, 1), regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
             if args.extract_traces:
                 if False: print(json.dumps(json_traces, indent=4))
-                rosette_input(json_traces, exp["id"], exp["result"], exp["filename"])
+                rosette_input(json_traces, exp["id"], exp["result"], exp["filename"], all_regs)
 
             if args.compare_obs:
                 if False: print(json.dumps(obs_json, indent=4))

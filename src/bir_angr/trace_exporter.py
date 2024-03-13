@@ -184,7 +184,7 @@ def compare_obs(obs_json, obs_base_id):
     return True
 
 
-def rosette_input(json_out, exp_id, exp_res, exp_filename):
+def rosette_input(json_out, exp_id, exp_res, exp_filename, all_regs):
     if exp_res == "true":
         exp_typ = "p"
     elif exp_res == "false":
@@ -192,12 +192,12 @@ def rosette_input(json_out, exp_id, exp_res, exp_filename):
     else:
         raise Exception(f"Unexpected experiment result: {exp_res}")
 
-    text_run1 = rosette_input_text(json_out[0]["states"], 0, exp_id, exp_typ)
-    text_run2 = rosette_input_text(json_out[1]["states"], 1, exp_id, exp_typ)
+    text_run1 = rosette_input_text(json_out[0]["states"], 0, exp_id, exp_typ, all_regs)
+    text_run2 = rosette_input_text(json_out[1]["states"], 1, exp_id, exp_typ, all_regs)
     with open(exp_filename, "w") as f:
         f.write(text_run1 + text_run2)
 
-def rosette_input_text(states, run_id, exp_id, exp_typ):
+def rosette_input_text(states, run_id, exp_id, exp_typ, all_regs):
     state_ids = []
     text = ""
     for state in states:
@@ -207,7 +207,7 @@ def rosette_input_text(states, run_id, exp_id, exp_typ):
         text += "\n"
         text += instruction_text(state["instruction"], indentation)
         text += f"(define {state_id_txt} (make-run\t ; Registers\n"
-        text += regs_text(state["registers"], indentation)
+        text += regs_text(state["registers"], indentation, all_regs)
         text += mem_text(state["memory"], indentation)
         text += iaddr_text(state["instr_address"], indentation)
         text += obs_operands_text(state["operands"], indentation)
@@ -221,10 +221,11 @@ def rosette_input_text(states, run_id, exp_id, exp_typ):
 def instruction_text(instr_json, indentation):
     return f"; Instruction: {instr_json}\n"
 
-def regs_text(regs_json, indentation):
+def regs_text(regs_json, indentation, all_regs):
     regs = f"{indentation}(vector-immutable\n"
+    reg_type = "REG" if all_regs else "REGn"
     for reg in regs_json:
-        regs += f"{indentation}   (REG (bv {reg[1][0]} (bitvector {reg[1][1]})))\t; Register: {reg[0]}\n"
+        regs += f"{indentation}   ({reg_type} (bv {reg[1][0]} (bitvector {reg[1][1]})))\t; Register: {reg[0]}\n"
     return f"\t{regs}{indentation}   )\n\n"
 
 def mem_text(mem_json, indentation):
