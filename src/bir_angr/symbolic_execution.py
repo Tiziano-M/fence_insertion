@@ -11,7 +11,7 @@ from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 from bir_angr.shadow_object import ShadowObject
-from bir_angr.trace_exporter import get_input_state, init_trace, save_trace, save_obs, compare_obs, rosette_input
+from bir_angr.trace_exporter import get_input_state, TraceExporter
 from bir_angr.default_filler_memory import *
 
 parser = argparse.ArgumentParser()
@@ -67,7 +67,7 @@ def set_mem_and_regs(state, input_data):
             raise Exception("Unknown input data", k)
 
 
-def conc_exec(proj, input_state, regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id):
+def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_exporter):
     input_state_data, input_state_id = input_state
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
@@ -87,8 +87,7 @@ def conc_exec(proj, input_state, regs, all_regs, entry_addr, exit_addrs, json_tr
 
     simgr = proj.factory.simulation_manager(state)
 
-    init_trace(json_traces, input_state_id)
-    state_id = 0
+    trace_exporter.init_trace(input_state_id)
     while True:
         if len(simgr.active) > 0:
             simgr.step(n=args.num_steps, avoid=exit_addrs)
@@ -100,18 +99,16 @@ def conc_exec(proj, input_state, regs, all_regs, entry_addr, exit_addrs, json_tr
                     if args.extract_operands and (insn is None):
                         raise Exception(f"Instruction not found: {hex(insn_addr)}")
 
-                    save_trace(json_traces, input_state_id, state_id, simgr.active[0], regs, all_regs, insn, args.extract_operands, obs_operand_id)
-                    state_id += 1
+                    trace_exporter.save_trace(input_state_id, simgr.active[0], insn)
             elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
-                #save_trace(simgr.deadended[0], regs)
                 if args.compare_obs:
-                    save_obs(simgr.deadended[0], obs_json, input_state_id, obs_operand_id)
+                    trace_exporter.save_obs(input_state_id, simgr.deadended[0])
                 continue
             elif len(simgr.active) > 1:
                 raise Exception("Unexpected states: ", simgr)
         else:
             break
-    #print(json.dumps(json_traces, indent=4))
+    #print(json.dumps(texporter.traces_json, indent=4))
     return
 
 
@@ -395,31 +392,29 @@ def run():
         if args.extract_traces:
             insns = disassemble_prog(binfile)
         target_obsoperandid = "2"
-        obs_operand_id = next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None)
-
-        all_regs = True
-        if "registers" in entry:
-            regs = entry["registers"]
-            all_regs = False
+        obs_operand_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None))
 
         if args.compare_obs:
             count_obs_eq = {True: [], False: []}
-            obs_base_id = next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == "0"), None)
+            obs_base_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == "0"), None))
+
+        texporter = TraceExporter(regs=entry.get("registers", None),
+                                  extract_operands=args.extract_operands,
+                                  obs_operand_id=obs_operand_id,
+                                  all_p = False)
         for exp in exps:
             (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
             assert (input1 and input2) is not None
 
-            obs_json = {}
-            json_traces = {}
-            conc_exec(proj, (input1, 0), regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
-            conc_exec(proj, (input2, 1), regs, all_regs, entry_addr, exit_addrs, json_traces, insns, obs_json, obs_operand_id)
+            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, insns, texporter)
+            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, insns, texporter)
             if args.extract_traces:
-                if False: print(json.dumps(json_traces, indent=4))
-                rosette_input(json_traces, exp["id"], exp["result"], exp["filename"], all_regs)
+                if False: print(json.dumps(texporter.traces_json, indent=4))
+                texporter.rosette_input(exp["id"], exp["result"], exp["filename"])
 
             if args.compare_obs:
-                if False: print(json.dumps(obs_json, indent=4))
-                res = compare_obs(obs_json, int(obs_base_id))
+                if False: print(json.dumps(texporter.obs_json, indent=4))
+                res = texporter.compare_obs(obs_base_id)
                 count_obs_eq[res].append(exp["id"])
         if args.compare_obs:
             print(count_obs_eq)
