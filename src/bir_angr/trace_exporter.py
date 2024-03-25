@@ -189,7 +189,9 @@ class TraceExporter:
         obslist1 = self.obs_json[0]
         obslist2 = self.obs_json[1]
 
-        assert len(obslist1) == len(obslist2)
+        if len(obslist1) != len(obslist2):
+            return False
+
         for obs1,obs2 in zip(obslist1, obslist2):
             if obs1["obs_id"] == obs_base_id and obs2["obs_id"] == obs_base_id:
                 assert obs1["obs_cond"] == 1 and obs2["obs_cond"] == 1
