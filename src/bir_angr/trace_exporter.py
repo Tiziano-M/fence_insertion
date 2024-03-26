@@ -45,7 +45,7 @@ class TraceExporter:
                  ctrace_ip=None,
                  all_p = False
                  ):
-        self.regs = regs if regs is not None else registers
+        self.regs = regs + [{"name": "ip", 'type': 'imm64'}] if regs is not None else registers
         self.all_regs = False if regs is not None else True
         self.traces_json = traces_json if traces_json is not None else {}
         self.obs_json = obs_json if obs_json is not None else {}
@@ -204,7 +204,7 @@ class TraceExporter:
         return True
 
 
-    def cache_ctrace(self, states_run0, states_run1, exp_typ, do_check):
+    def cache_ctrace(self, states_run0, states_run1, exp_typ, do_check=True):
         if self._cache_ctrace_ip is None:
             assert exp_typ == "c"
             self._cache_ctrace_ip = []
@@ -246,7 +246,7 @@ class TraceExporter:
             raise Exception(f"Unexpected experiment result: {exp_res}")
         (states_run0, states_run1) = (self.traces_json[0]["states"], self.traces_json[1]["states"])
         if self.all_p:
-            self.cache_ctrace(states_run0, states_run1, exp_typ, True)
+            self.cache_ctrace(states_run0, states_run1, exp_typ)
 
         text_run1 = self.rosette_input_text(states_run0, 0, exp_id, exp_typ)
         text_run2 = self.rosette_input_text(states_run1, 1, exp_id, exp_typ)
@@ -293,11 +293,8 @@ class TraceExporter:
     def mem_text(self, mem_json, indentation):
         mem = f"{indentation}; Memory\n"
         mem += f"{indentation}  (vector-immutable\n"
-        if mem_json == {}:
-            mem += f"{indentation}  '()\n"
-        else:
-            for (addr, val) in mem_json.items():
-                mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
+        for (addr, val) in mem_json.items():
+            mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
         return f"\t{mem}{indentation}   )\n\n"
 
     def iaddr_text(self, iaddr_json, indentation):
@@ -315,20 +312,14 @@ class TraceExporter:
     def operands_text(self, operands_json, indentation):
         opss = f"{indentation}; Operands\n"
         opss += f"{indentation}  (vector-immutable\n"
-        if operands_json == []:
-            opss += f"{indentation}  '()\n"
-        else:
-            for ops in operands_json:
-                opss += f"{indentation}   (OPERAND (bv {ops[1][0]} (bitvector {ops[1][1]})))\t; Operand: {ops[0]}\n"
+        for ops in operands_json:
+            opss += f"{indentation}   (OPERAND (bv {ops[1][0]} (bitvector {ops[1][1]})))\t; Operand: {ops[0]}\n"
         return f"\t{opss}{indentation}   )\n"
 
     def obs_operands_text(self, operands_json, indentation):
         opss = f"{indentation}; Operands\n"
         opss += f"{indentation}  (vector-immutable\n"
-        if operands_json == []:
-            opss += f"{indentation}  '()\n"
-        else:
-            for ops in operands_json:
-                opss += f"{indentation}   (OPERAND (bv {ops[0]} (bitvector {ops[1]})))\n"
+        for ops in operands_json:
+            opss += f"{indentation}   (OPERAND (bv {ops[0]} (bitvector {ops[1]})))\n"
         return f"\t{opss}{indentation}   )\n"
 

@@ -79,7 +79,6 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
 
-    regs = regs + [{"name": "ip", 'type': 'imm64'}]
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
@@ -87,7 +86,8 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
 
     simgr = proj.factory.simulation_manager(state)
 
-    trace_exporter.init_trace(input_state_id)
+    if args.extract_traces:
+        trace_exporter.init_trace(input_state_id)
     while True:
         if len(simgr.active) > 0:
             simgr.step(n=args.num_steps, avoid=exit_addrs)
@@ -406,6 +406,8 @@ def run():
             (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
             assert (input1 and input2) is not None
 
+            texporter.obs_json = {}
+            texporter.traces_json = {}
             conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, insns, texporter)
             conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, insns, texporter)
             if args.extract_traces:
