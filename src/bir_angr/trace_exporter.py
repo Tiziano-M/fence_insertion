@@ -1,7 +1,7 @@
 import angr
 
 
-registers = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "type": "imm1"}, {"name": "ProcState_V", "type": "imm1"}, 
+REGISTERS = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "type": "imm1"}, {"name": "ProcState_V", "type": "imm1"}, 
              {"name": "ProcState_Z", "type": "imm1"}, {"name": "SP_EL0", "type": "imm64"}, {"name": "R1", "type": "imm64"}, 
              {"name": "R2", "type": "imm64"}, {"name": "R3", "type": "imm64"}, {"name": "R4", "type": "imm64"}, {"name": "R5", "type": "imm64"}, 
              {"name": "R6", "type": "imm64"}, {"name": "R7", "type": "imm64"}, {"name": "R8", "type": "imm64"}, {"name": "R9", "type": "imm64"}, 
@@ -11,6 +11,13 @@ registers = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "t
              {"name": "R22", "type": "imm64"}, {"name": "R23", "type": "imm64"}, {"name": "R24", "type": "imm64"}, {"name": "R25", "type": "imm64"}, 
              {"name": "R26", "type": "imm64"}, {"name": "R27", "type": "imm64"}, {"name": "R28", "type": "imm64"}, {"name": "R29", "type": "imm64"}, 
              {"name": "R30", "type": "imm64"}, {"name": "R31", "type": "imm64"}, {"name": "ip", "type": "imm64"}]
+REGISTER_TYPES = {
+        "imm64": 64,
+        "imm32": 32,
+        "imm16": 16,
+        "imm8": 8,
+        "imm1": 8
+    }
 
 # https://github.com/kth-step/EmbExp-Logs/blob/master/lib/experiment.py
 def _proc_input_state(inp, statename):
@@ -36,6 +43,9 @@ def get_input_state(in_data, statename):
 
 
 class TraceExporter:
+    EMPTY_REGISTERS = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
+    EMPTY_OPERANDS = [(0, 64)] * 16
+
     def __init__(self,
                  regs,
                  extract_operands,
@@ -45,7 +55,7 @@ class TraceExporter:
                  ctrace_ip=None,
                  all_p = False
                  ):
-        self.regs = regs + [{"name": "ip", 'type': 'imm64'}] if regs is not None else registers
+        self.regs = regs + [{"name": "ip", 'type': 'imm64'}] if regs is not None else REGISTERS
         self.all_regs = False if regs is not None else True
         self.traces_json = traces_json if traces_json is not None else {}
         self.obs_json = obs_json if obs_json is not None else {}
@@ -90,7 +100,7 @@ class TraceExporter:
                     if reg["type"] == "imm64":
                         sz = 64
                     elif reg["type"] == "imm1":
-                        sz = 1
+                        sz = 8
                     else:
                         raise Exception(f"Unexpected register type {reg}")
                     list_regs.append((reg["name"], ((0, sz))))
@@ -229,6 +239,13 @@ class TraceExporter:
                 if preg_ip[1][0] == self._cache_ctrace_ip[i]:
                     trim_states.append(state)
                 else:
+                    for n in range(i, len(self._cache_ctrace_ip)):
+                        trim_states.append({"state_id": n,
+                                            "instruction": "empty state",
+                                            "instr_address": 0, # no matter
+                                            "registers": TraceExporter.EMPTY_REGISTERS,
+                                            "memory": {},
+                                            "operands": TraceExporter.EMPTY_OPERANDS})
                     return trim_states
             return None
         else:
