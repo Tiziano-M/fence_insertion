@@ -44,7 +44,7 @@ def get_input_state(in_data, statename):
 
 class TraceExporter:
     EMPTY_REGISTERS = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
-    EMPTY_OPERANDS = [(0, 64)] * 16
+    EMPTY_OPERANDS = [(0, 64)] * 12
 
     def __init__(self,
                  regs,
