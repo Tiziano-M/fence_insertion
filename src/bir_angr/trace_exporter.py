@@ -44,7 +44,7 @@ def get_input_state(in_data, statename):
 
 class TraceExporter:
     EMPTY_REGISTERS = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
-    EMPTY_OPERANDS = [(0, 64)] * 12
+    EMPTY_OPERANDS = [(0, 64)] * 6
 
     def __init__(self,
                  regs,
@@ -52,7 +52,7 @@ class TraceExporter:
                  obs_operand_id,
                  traces_json=None,
                  obs_json=None,
-                 ctrace_ip=None,
+                 ctrace=None,
                  all_p = False
                  ):
         self.regs = regs + [{"name": "ip", 'type': 'imm64'}] if regs is not None else REGISTERS
@@ -62,7 +62,7 @@ class TraceExporter:
         self.state_id = None
         self.extract_operands = extract_operands
         self.obs_operand_id = obs_operand_id
-        self._cache_ctrace_ip = ctrace_ip
+        self._cache_ctrace = ctrace
         self.all_p = all_p
 
     def init_trace(self, run_id):
@@ -215,31 +215,29 @@ class TraceExporter:
 
 
     def cache_ctrace(self, states_run0, states_run1, exp_typ, do_check=True):
-        if self._cache_ctrace_ip is None:
+        if self._cache_ctrace is None:
             assert exp_typ == "c"
-            self._cache_ctrace_ip = []
+            self._cache_ctrace = []
             for state in states_run0:
-                reg_ip_run0 = state["registers"][-1]
-                assert reg_ip_run0[0] == "ip"
-                self._cache_ctrace_ip.append(reg_ip_run0[1][0])
+                self._cache_ctrace.append(
+                  (state["state_id"], state["instr_address"]))
 
             if do_check:
                 for (i, state) in enumerate(states_run1):
-                    reg_ip_run1 = state["registers"][-1]
-                    assert reg_ip_run1[0] == "ip"
-                    if reg_ip_run1[1][0] != self._cache_ctrace_ip[i]:
-                        raise Exception(f"This should not happen")
+                    iaddr_run1 = state["instr_address"]
+                    if iaddr_run1 != self._cache_ctrace[i][1]:
+                        raise Exception(f"{iaddr_run1} does not macth with {self._cache_ctrace[i][1]}")
 
     def trim_trace(self, states):
-        if self._cache_ctrace_ip is not None:
+        if self._cache_ctrace is not None:
             trim_states = []
             for (i, state) in enumerate(states):
                 preg_ip = state["registers"][-1]
                 assert preg_ip[0] == "ip"
-                if preg_ip[1][0] == self._cache_ctrace_ip[i]:
+                if preg_ip[1][0] == self._cache_ctrace[i]:
                     trim_states.append(state)
                 else:
-                    for n in range(i, len(self._cache_ctrace_ip)):
+                    for n in range(i, len(self._cache_ctrace)):
                         trim_states.append({"state_id": n,
                                             "instruction": "empty state",
                                             "instr_address": 0, # no matter
@@ -248,6 +246,61 @@ class TraceExporter:
                                             "operands": TraceExporter.EMPTY_OPERANDS})
                     return trim_states
             return None
+        else:
+            raise Exception("No trace cached")
+
+    def align_trace(self, states):
+        def empty_state(sid, saddr):
+            return {"state_id": sid,
+                    "instruction": "empty state",
+                    "instr_address": saddr, # no matter, just for a check
+                    "registers": TraceExporter.EMPTY_REGISTERS,
+                    "memory": {},
+                    "operands": TraceExporter.EMPTY_OPERANDS}
+
+
+        if self._cache_ctrace is not None:
+
+            if ((len(states) == len(self._cache_ctrace)) and
+               (all(s["instr_address"] == ca for (s,(_,ca)) in zip(states,self._cache_ctrace)))):
+                 return None
+
+            aligned_states = []
+            states_iter = iter(states)
+            pstate = next(states_iter)
+            for (cstate_id, ciaddr) in self._cache_ctrace:
+                if pstate is None:
+                    aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
+                    continue
+
+                piaddr = pstate["instr_address"]
+                if piaddr > ciaddr:
+                    aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
+                    continue
+
+                try:
+                    #print(piaddr, ciaddr)
+                    while piaddr < ciaddr:
+                        #print(f"I: {piaddr}-> skip")
+                        pstate = next(states_iter)
+                        piaddr = pstate["instr_address"]
+
+                    try:
+                        if piaddr == ciaddr:
+                            aligned_states.append(pstate)
+                            pstate = next(states_iter)
+                        else:
+                            aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
+                    except StopIteration:
+                        pstate = None
+                except StopIteration:
+                    pstate = None
+                    if cstate_id == len(self._cache_ctrace)-1:
+                        aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
+
+            assert len(aligned_states) == len(self._cache_ctrace)
+            assert all(aligned_states[i]["instr_address"] == self._cache_ctrace[i][1] for i in range(len(self._cache_ctrace)))
+            return aligned_states
         else:
             raise Exception("No trace cached")
 
@@ -272,7 +325,7 @@ class TraceExporter:
 
     def rosette_input_text(self, states, run_id, exp_id, exp_typ):
         if self.all_p and exp_typ == "p":
-            trimmed_states = self.trim_trace(states)
+            trimmed_states = self.align_trace(states)
             if trimmed_states is not None:
                 #print(f"exp ID trimmed: {exp_id}")
                 states = trimmed_states
