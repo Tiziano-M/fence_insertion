@@ -22,11 +22,12 @@ class SimplificationManagerBIR(claripy.simplifications.SimplificationManager):
             assert e.size() == 8
             new_e = e.make_like('ZeroExt', (16, claripy.ZeroExt(8, e)), length=24 + e.size(), simplify=False)
             return e.make_like('ZeroExt', (32, new_e), length=n + e.size(), simplify=False)
+        '''
         elif n == 63:
             assert e.size() == 1
             # Note: dirty hack to handle 1-bit flags
-            return e.make_like('Extract', (0, 0, e), length=63+e.size(), simplify=False)
-            
+            return e.make_like('Extract', (0, 0, e), length=63+e.size(), simplify=True)
+        '''
 
         if e.op == 'ZeroExt':
             # ZeroExt(A, ZeroExt(B, x)) ==> ZeroExt(A + B, x)

@@ -61,6 +61,11 @@ def set_mem_and_regs(state, input_data):
                 state.regs.SP_EL0 = v
             except Exception:
                 raise Exception(f"Register SP_EL0 not found in the state")
+        elif k.startswith("ProcState_") and (k[-1] in ["C", "N", "V", "Z"]):
+            try:
+                setattr(state.regs, k, v)
+            except Exception:
+                raise Exception(f"Register {k} not found in the state")
         elif k == "mem":
             set_mem(state, v)
         else:
@@ -160,9 +165,9 @@ def init_regs(state, regs):
         elif reg["type"] == "imm8":
             sz = 8
         elif reg["type"] == "imm1":
-            sz = 8
+            sz = 1
         setattr(state.regs, reg["name"], claripy.BVS(reg["name"], sz))
-        
+
 
 def set_state_options(state):
     state.options.add(angr.options.LAZY_SOLVES) # Don't check satisfiability until absolutely necessary
