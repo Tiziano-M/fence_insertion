@@ -128,12 +128,22 @@ class Instruction_BINEXP(BIR_Instruction):
             # FIX: no way to handle signed mod
             val = operand1.signed % operand2.signed
         elif operator == "BIExp_LeftShift":
-            val = operand1 << operand2.cast_to(Type.int_8)
+            if operand1.ty == Type.int_1 and operand2.ty == Type.int_1:
+                val = operand1.cast_to(Type.int_8) << operand2.cast_to(Type.int_8)
+                val.cast_to(Type.int_1)
+            else:
+                val = operand1 << operand2.cast_to(Type.int_8)
         elif operator == "BIExp_RightShift":
-            val = operand1 >> operand2.cast_to(Type.int_8)
+            if operand1.ty == Type.int_1 and operand2.ty == Type.int_1:
+                val = operand1.cast_to(Type.int_8) >> operand2.cast_to(Type.int_8)
+                val.cast_to(Type.int_1)
+            else:
+                val = operand1 >> operand2.cast_to(Type.int_8)
         elif operator == "BIExp_SignedRightShift":
             # FIX: no way to handle signed shift
             val = operand1.signed >> operand2.cast_to(Type.int_8, signed=True).signed
+        else:
+            raise Exception (f"Invalid BIR operator: {operator}")
         return val
 
 
