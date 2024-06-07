@@ -76,6 +76,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
     input_state_data, input_state_id = input_state
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
+    addr_start_hex = hex(entry_addr)[:3]
 
     state = proj.factory.entry_state(addr=entry_addr,
                                      remove_options=angr.options.simplification,
@@ -93,27 +94,35 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
 
     if args.extract_traces:
         trace_exporter.init_trace(input_state_id)
-    while True:
-        if len(simgr.active) > 0:
-            simgr.step(n=args.num_steps, avoid=exit_addrs)
-            if (len(simgr.active) == 1 and (hex(simgr.active[0].ip.args[0]).startswith("0x4"))):
-                if args.extract_traces:
-                    addr_history = simgr.active[0].history.bbl_addrs.hardcopy
-                    insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith('0x4')), None)
-                    insn = next((i for i in insns if i.addr == insn_addr), None)
-                    if args.extract_operands and (insn is None):
-                        raise Exception(f"Instruction not found: {hex(insn_addr)}")
+    while len(simgr.active) > 0:
+        if args.extract_traces and len(simgr.active) == 1:
+            current_state = simgr.active[0]
 
-                    trace_exporter.save_trace(input_state_id, simgr.active[0], insn)
-            elif len(simgr.active) == 0 and len(simgr.deadended) == 1:
-                if args.compare_obs:
-                    trace_exporter.save_obs(input_state_id, simgr.deadended[0])
-                continue
-            elif len(simgr.active) > 1:
-                raise Exception("Unexpected states: ", simgr)
-        else:
-            break
-    #print(json.dumps(texporter.traces_json, indent=4))
+            if hex(current_state.addr).startswith(addr_start_hex):
+                insn = next((i for i in insns if i.addr == current_state.addr), None)
+                if insn is None:
+                    break
+
+                trace_exporter.save_trace(input_state_id, current_state, insn)
+            else:
+                addr_history = current_state.history.bbl_addrs.hardcopy
+                insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith(addr_start_hex)), None)
+                insn = next((i for i in insns if i.addr == insn_addr), None)
+                if args.extract_operands and (insn is None):
+                    raise Exception(f"Instruction not found: {hex(insn_addr)}")
+
+                trace_exporter.add_operands_to_trace(input_state_id, current_state)
+
+        elif len(simgr.active) > 1:
+            raise Exception("Unexpected states: ", simgr)
+
+        # move forward
+        simgr.step(n=args.num_steps, avoid=exit_addrs)
+
+    if args.compare_obs:
+        if len(simgr.active) == 0 and len(simgr.deadended) == 1:
+            trace_exporter.save_obs(input_state_id, simgr.deadended[0])
+    #print(json.dumps(trace_exporter.traces_json, indent=4))
     return
 
 

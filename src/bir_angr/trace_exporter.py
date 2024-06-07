@@ -76,12 +76,17 @@ class TraceExporter:
         dict_state["instr_address"] = insn.addr
         dict_state["registers"] = self.save_regs(state)
         dict_state["memory"] = self.save_mem(state)
+
         #dict_state["observations"] = self.save_obs(state)
         #dict_state["operands"] = self.save_operands(state, insn) if insn is not None else []
-        dict_state["operands"] = self.save_obs_operands(state, insn)
+        dict_state["operands"] = [] #self.save_obs_operands(state)
 
         self.traces_json[run_id]["states"].append(dict_state.copy())
         self.state_id += 1
+
+    def add_operands_to_trace(self, run_id, state):
+        ops = self.save_obs_operands(state)
+        self.traces_json[run_id]["states"][-1]["operands"].extend(ops)
 
     def save_regs(self, state):
         list_regs = []
@@ -130,7 +135,7 @@ class TraceExporter:
             self.obs_json[run_id].append(obsjson)
         return self.obs_json[run_id]
 
-    def save_obs_operands(self, state, insn):
+    def save_obs_operands(self, state):
         if self.obs_operand_id is None:
             raise Exception("Operand id is not set")
 
