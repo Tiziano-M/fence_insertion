@@ -10,7 +10,7 @@ REGISTERS = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "t
              {"name": "R18", "type": "imm64"}, {"name": "R19", "type": "imm64"}, {"name": "R20", "type": "imm64"}, {"name": "R21", "type": "imm64"}, 
              {"name": "R22", "type": "imm64"}, {"name": "R23", "type": "imm64"}, {"name": "R24", "type": "imm64"}, {"name": "R25", "type": "imm64"}, 
              {"name": "R26", "type": "imm64"}, {"name": "R27", "type": "imm64"}, {"name": "R28", "type": "imm64"}, {"name": "R29", "type": "imm64"}, 
-             {"name": "R30", "type": "imm64"}, {"name": "R31", "type": "imm64"}, {"name": "ip", "type": "imm64"}]
+             {"name": "R30", "type": "imm64"}, {"name": "ip", "type": "imm64"}]
 REGISTER_TYPES = {
         "imm64": 64,
         "imm32": 32,
