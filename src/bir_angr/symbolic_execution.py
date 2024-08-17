@@ -415,7 +415,7 @@ def run():
         texporter = TraceExporter(regs=entry.get("registers", None),
                                   extract_operands=args.extract_operands,
                                   obs_operand_id=obs_operand_id,
-                                  all_p = False)
+                                  all_p = True)
         for exp in exps:
             (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
             assert (input1 and input2) is not None
