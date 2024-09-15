@@ -81,7 +81,7 @@ class TraceExporter:
         #dict_state["operands"] = self.save_operands(state, insn) if insn is not None else []
         dict_state["operands"] = [] #self.save_obs_operands(state) if self.extract_operands else []
 
-        self.traces_json[run_id]["states"].append(dict_state.copy())
+        self.traces_json[run_id]["states"].append(dict_state)
         self.state_id += 1
 
     def add_operands_to_trace(self, run_id, state):
@@ -95,7 +95,7 @@ class TraceExporter:
             try:
                 val = getattr(state.regs, reg_n)
                 if val.symbolic:
-                    reg_v = (0, val.size())
+                    raise Exception(f"Register value not as expected: {val}")
                 else:
                     assert val.size() == val.args[1]
                     reg_v = (val.args[0], val.args[1])
@@ -127,7 +127,7 @@ class TraceExporter:
             obsjson["obs_list"] = []
             for obs in obs_list:
                 if obs.symbolic:
-                    obs_v = (state.solver.eval(obs), obs.size())
+                    raise Exception(f"Observation value not as expected: {obs}")
                 else:
                     assert obs.size() == obs.args[1]
                     obs_v = (obs.args[0], obs.args[1])
@@ -144,10 +144,7 @@ class TraceExporter:
             if obs_id == self.obs_operand_id:
                 for obs in obs_list:
                     if obs.symbolic:
-                        if self.extract_operands:
-                            obs_v = (state.solver.eval(obs), obs.size())
-                        else:
-                            raise Exception(f"Observation value not as expected: {obs}")
+                        raise Exception(f"Observation value not as expected: {obs}")
                     else:
                         assert obs.size() == obs.args[1]
                         obs_v = (obs.args[0], obs.args[1])

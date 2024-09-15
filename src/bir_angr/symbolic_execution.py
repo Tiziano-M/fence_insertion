@@ -81,7 +81,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
     state = proj.factory.entry_state(addr=entry_addr,
                                      remove_options=angr.options.simplification,
                                      plugins={"memory": DefaultMemoryFiller(cle_memory_backer=proj.loader, memory_id='mem')})
-    init_regs(state, regs)
+
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
 
