@@ -202,6 +202,7 @@ def set_state_options(state):
     if args.conc_execution:
         state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_MEMORY)
         state.options.add(angr.options.ZERO_FILL_UNCONSTRAINED_REGISTERS)
+        state.options.remove(angr.options.COPY_STATES)
     else:
         state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_MEMORY)
         state.options.add(angr.options.SYMBOL_FILL_UNCONSTRAINED_REGISTERS)
