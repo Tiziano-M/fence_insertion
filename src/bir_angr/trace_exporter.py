@@ -79,7 +79,7 @@ class TraceExporter:
 
         #dict_state["observations"] = self.save_obs(state)
         #dict_state["operands"] = self.save_operands(state, insn) if insn is not None else []
-        dict_state["operands"] = [] #self.save_obs_operands(state)
+        dict_state["operands"] = [] #self.save_obs_operands(state) if self.extract_operands else []
 
         self.traces_json[run_id]["states"].append(dict_state.copy())
         self.state_id += 1

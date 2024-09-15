@@ -85,6 +85,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
 
+    state.inspect.b('reg_write', when=angr.BP_AFTER, action=observe)
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     state.inspect.b('exit', condition=(lambda state: any(state.addr==exit for exit in exit_addrs)), action=find_exit)
@@ -104,14 +105,6 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
                     break
 
                 trace_exporter.save_trace(input_state_id, current_state, insn)
-            else:
-                addr_history = current_state.history.bbl_addrs.hardcopy
-                insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith(addr_start_hex)), None)
-                insn = next((i for i in insns if i.addr == insn_addr), None)
-                if args.extract_operands and (insn is None):
-                    raise Exception(f"Instruction not found: {hex(insn_addr)}")
-
-                trace_exporter.add_operands_to_trace(input_state_id, current_state)
 
         elif len(simgr.active) > 1:
             raise Exception("Unexpected states: ", simgr)
@@ -119,11 +112,37 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
         # move forward
         simgr.step(n=args.num_steps, avoid=exit_addrs)
 
+        if args.extract_operands:
+            addr_history = current_state.history.bbl_addrs.hardcopy
+            insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith(addr_start_hex)), None)
+            insn = next((i for i in insns if i.addr == insn_addr), None)
+            if insn is None:
+                raise Exception(f"Instruction not found: {hex(insn_addr)}")
+
+            trace_exporter.add_operands_to_trace(input_state_id, current_state)
+
     if args.compare_obs:
         if len(simgr.active) == 0 and len(simgr.deadended) == 1:
             trace_exporter.save_obs(input_state_id, simgr.deadended[0])
     #print(json.dumps(trace_exporter.traces_json, indent=4))
     return
+
+
+def observe(state):
+    if isinstance(state.inspect.reg_write_offset, claripy.ast.BV):
+        if (state.inspect.reg_write_offset.args[0] == 8): # 'obs' reg
+            #print(f"Observation: {state.inspect.reg_write_expr}")
+            state.observations.accumulate.append(state.inspect.reg_write_expr)
+
+        elif (state.inspect.reg_write_offset.args[0] == 24): # 'idx_obs' reg
+            #print("Saving Observation")
+
+            obss = state.observations.accumulate.list_obs.copy()
+            cond_obs = state.regs.cond_obs[0]
+            idx_cond_obss = (state.regs.idx_obs.args[0], cond_obs, obss, None)
+            state.observations.append(idx_cond_obss)
+            state.observations.accumulate.list_obs.clear()
+            #state.regs.cond_obs = 0
 
 
 def disassemble_prog(binary):
@@ -405,6 +424,9 @@ def run():
         insns = None
         if args.extract_traces:
             insns = disassemble_prog(binfile)
+        if args.extract_operands and (not args.extract_traces):
+            raise Exception("trace exporter disabled, operands cannot be exported")
+
         target_obsoperandid = "2"
         obs_operand_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None))
 
@@ -441,6 +463,8 @@ def run():
     init_regs(state, regs)
     set_state_options(state)
 
+    # breakpoint for observations instead of system calls
+    state.inspect.b('reg_write', when=angr.BP_AFTER, action=observe)
     # breakpoint that hooks the 'mem_read' event to change the resulting symbolic values
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
     #proj.hook(extern_addr, debug_addr)

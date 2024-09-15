@@ -465,17 +465,25 @@ class Instruction_OBSERVE(BIR_Instruction):
         return idx
 
     def compute_result(self):
+        # Note: Observations handled with angr breakpoints instead of system calls
+
+        # Note: enables system call
         # to match the system call with 1 of 'accumulate'
-        self.put(self.constant(1, Type.int_64), 'syscall_num')
+        #self.put(self.constant(1, Type.int_64), 'syscall_num')
+
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
             if obs.ty == Type.int_1:
                 obs = obs.cast_to(Type.int_64)
             self.put(obs, 'obs')
-            self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
+            # Note: enables system call
+            #self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+
+        # Note: enables system call
         # to match the system call with 0 of 'observation'
-        self.put(self.constant(0, Type.int_64), 'syscall_num')
+        #self.put(self.constant(0, Type.int_64), 'syscall_num')
+
         idx = self.get_idx()
         condition = self.map_expressions(self.block["cnd"], self.irsb_c)
         if condition.ty == Type.int_1:
@@ -484,7 +492,9 @@ class Instruction_OBSERVE(BIR_Instruction):
             raise Exception("condition in Observe statement is not well-typed")
         self.put(condition, 'cond_obs')
         self.put(self.constant(idx, Type.int_64), 'idx_obs')
-        self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
+
+        # Note: enables system call
+        #self.jump(self.constant(1, Type.int_1), self.constant(LifterBIR.kernel_addr+1, Type.int_64), jumpkind=JumpKind.Syscall)
 
 
 class Instruction_JMP(BIR_Instruction):
