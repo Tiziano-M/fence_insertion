@@ -113,6 +113,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
         simgr.step(n=args.num_steps, avoid=exit_addrs)
 
         if args.extract_operands:
+            # Note: this code works since COPY_STATES is disabled and the same current state is always updated after stepping
             addr_history = current_state.history.bbl_addrs.hardcopy
             insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith(addr_start_hex)), None)
             insn = next((i for i in insns if i.addr == insn_addr), None)
@@ -516,7 +517,9 @@ def run():
                     simgr.active.remove(failed_state)
                     # TODO: make sure it is the one that fails, is this enough?
                     if jg_constraints != []:
-                        assert any(jc.structurally_match(fc) for jc in jg_constraints for fc in failed_state.solver.constraints)
+                        # constraints in failed_state.solver.constraints can be split,
+                        # better to use failed_state.history.jump_guards.hardcopy to compare
+                        assert any(jc.structurally_match(fc) for jc in jg_constraints for fc in failed_state.history.jump_guards.hardcopy)
 
             initial_state = state.copy()
             initial_state.add_constraints(*jg_constraints)
