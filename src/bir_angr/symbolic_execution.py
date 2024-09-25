@@ -11,7 +11,7 @@ from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 from bir_angr.shadow_object import ShadowObject
-from bir_angr.trace_exporter import get_input_state, TraceExporter
+from bir_angr.trace_exporter import get_input_state, TraceExporter, REGISTERS
 from bir_angr.default_filler_memory import *
 
 parser = argparse.ArgumentParser()
@@ -178,8 +178,13 @@ def find_loops(proj):
     return (cfg, loop_finder.loops)
 
 
-def set_registers(birprog):
-    regs = bir_angr.bir.arch_bir.get_register_list(birprog)
+def set_registers(all_regs, birprog):
+    if args.conc_execution and all_regs:
+        bir_angr.bir.arch_bir.config_regs(REGISTERS)
+        regs = None
+    else:
+        # extracts the registers from the input program and sets them in the register list of the architecture
+        regs = bir_angr.bir.arch_bir.get_register_list(birprog)
     return regs
 
 
@@ -405,8 +410,9 @@ def run():
     if args.data_constraints:
         data_constraints = extract_data_constraints(binfile)
 
-    # extracts the registers from the input program and sets them in the register list of the architecture
-    regs = set_registers(birprogjson)
+    all_regs = True
+    # sets them in the register list of the architecture
+    regs = set_registers(all_regs, birprogjson)
 
     # initializes the angr project
     proj = angr.Project(binfile, main_opts={'backend': 'bir'}, load_options={'auto_load_libs': False})

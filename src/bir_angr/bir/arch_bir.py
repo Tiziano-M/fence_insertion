@@ -27,6 +27,25 @@ def regs_extraction_from_json(birprog, regs):
         raise Exception("Error of bir program in json format")
     return regs
 
+def config_regs(regs):
+    vex_offset = 40
+    for reg in regs:
+        reg_typ = reg["type"]
+        if reg_typ == "imm64":
+            sz = 8
+        elif reg_typ == "imm32":
+            sz = 4
+        elif reg_typ == "imm16":
+            sz = 2
+        elif reg_typ == "imm8":
+            sz = 1
+        elif reg_typ == "imm1":
+            sz = 1
+        else:
+            raise Exception(f"Unknown register type: {reg_typ}")
+        vex_offset = vex_offset + 8
+        ArchBIR.register_list.append(Register(name=reg["name"], size=sz, vex_offset=vex_offset))
+
 def get_register_list(birprog):
     with open(birprog, "r") as json_file:
         birprogjson = json.load(json_file)
@@ -36,22 +55,8 @@ def get_register_list(birprog):
     regs = [dict(t) for t in {tuple(sorted(d.items())) for d in regs}]
     # reorders the list
     regs = sorted(regs, key=lambda k: k['name'])
-    
-    vex_offset = 40
-    for reg in regs:
-        if reg["type"] == "imm64":
-            sz = 8
-        elif reg["type"] == "imm32":
-            sz = 4
-        elif reg["type"] == "imm16":
-            sz = 2
-        elif reg["type"] == "imm8":
-            sz = 1
-        elif reg["type"] == "imm1":
-            sz = 1
-        vex_offset = vex_offset + 8
-        ArchBIR.register_list.append(Register(name=reg["name"], size=sz, vex_offset=vex_offset))
-    
+    config_regs(regs)
+
     return regs
 
 
