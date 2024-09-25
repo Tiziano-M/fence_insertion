@@ -26,6 +26,7 @@ parser.add_argument('-ce', "--conc_execution", help="Execute a program from two 
 parser.add_argument('-et', "--extract_traces", help="Extract traces", default=False, action='store_true')
 parser.add_argument('-eop', "--extract_operands", help="Extract operands", default=False, action='store_true')
 parser.add_argument('-cobs', "--compare_obs", help="Compare observations", default=False, action='store_true')
+parser.add_argument('-cobs_s', "--compare_obs_short", help="Compare observations and stop at the first true", default=False, action='store_true')
 args = parser.parse_args()
 
 
@@ -407,7 +408,7 @@ def run():
     exit_addrs = entry["exits"]
 
     data_constraints = None
-    if args.data_constraints:
+    if args.data_constraints and not args.compare_obs_short: # FIXME: temporary fix
         data_constraints = extract_data_constraints(binfile)
 
     all_regs = True
@@ -434,6 +435,8 @@ def run():
             insns = disassemble_prog(binfile)
         if args.extract_operands and (not args.extract_traces):
             raise Exception("trace exporter disabled, operands cannot be exported")
+        if args.compare_obs_short and (not args.compare_obs):
+            raise Exception("compare_obs must be enabled to use compare_obs_short")
 
         target_obsoperandid = "2"
         obs_operand_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None))
@@ -462,6 +465,8 @@ def run():
                 if False: print(json.dumps(texporter.obs_json, indent=4))
                 res = texporter.compare_obs(obs_base_id)
                 count_obs_eq[res].append(exp["id"])
+                if res is True and args.compare_obs_short:
+                    break
         if args.compare_obs:
             print(count_obs_eq)
         return
