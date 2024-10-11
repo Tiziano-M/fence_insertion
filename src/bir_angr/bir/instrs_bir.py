@@ -1,5 +1,6 @@
 from pyvex.lifting.util import Type, JumpKind
 from pyvex.lifting.util.syntax_wrapper import VexValue
+from pyvex.const import vex_int_class
 from .BIR_Instruction import BIR_Instruction
 from .lift_bir import LifterBIR
 import logging
@@ -86,6 +87,21 @@ class Instruction_BINEXP(BIR_Instruction):
         self.block = block
         self.irsb_c = irsb_c
 
+    def narrow_low_bitwidth(self, bitwidth):
+        bitwidth_map = {
+            128: 7,
+            64: 6,
+            32: 5,
+            16: 4,
+            8: 3,
+            1: 0
+        }
+
+        try:
+            return bitwidth_map[bitwidth]
+        except KeyError:
+            raise ValueError(f"Unsupported bitwidth: {bitwidth}")
+
     def get_operator(self):
         operator = self.block["type"]
         return operator
@@ -129,19 +145,23 @@ class Instruction_BINEXP(BIR_Instruction):
             val = operand1.signed % operand2.signed
         elif operator == "BIExp_LeftShift":
             if operand1.ty == Type.int_1 and operand2.ty == Type.int_1:
-                val = operand1.cast_to(Type.int_8) << operand2.cast_to(Type.int_8)
-                val.cast_to(Type.int_1)
+                #val = operand1 & (operand2 == 0)
+                raise Exception("error type with BIExp_LeftShift")
             else:
-                val = operand1 << operand2.cast_to(Type.int_8)
+                shift_amount = operand2.narrow_low(vex_int_class(self.narrow_low_bitwidth(operand1.width)).type)
+                lshift = operand1 << shift_amount.cast_to(Type.int_8)
+                val = lshift & ((operand2 < operand1.width) * self.constant(((1 << (operand1.width)) - 1), operand1.ty))
         elif operator == "BIExp_RightShift":
-            if operand1.ty == Type.int_1 and operand2.ty == Type.int_1:
-                val = operand1.cast_to(Type.int_8) >> operand2.cast_to(Type.int_8)
-                val.cast_to(Type.int_1)
+            if operand1.ty == Type.int_1:
+                val = operand1 & (operand2 == 0)
             else:
-                val = operand1 >> operand2.cast_to(Type.int_8)
+                shift_amount = operand2.narrow_low(vex_int_class(self.narrow_low_bitwidth(operand1.width)).type)
+                rshift = operand1 >> shift_amount.cast_to(Type.int_8)
+                val = rshift & ((operand2 < operand1.width) * self.constant(((1 << (operand1.width)) - 1), operand1.ty))
         elif operator == "BIExp_SignedRightShift":
-            # FIX: no way to handle signed shift
-            val = operand1.signed >> operand2.cast_to(Type.int_8, signed=True).signed
+            shift_amount = operand2.narrow_low(vex_int_class(self.narrow_low_bitwidth(operand1.width)).type)
+            # FIX
+            val = operand1.sar(shift_amount.cast_to(Type.int_8)).cast_to(operand1.ty)
         else:
             raise Exception (f"Invalid BIR operator: {operator}")
         return val
