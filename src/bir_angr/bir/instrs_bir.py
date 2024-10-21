@@ -494,7 +494,8 @@ class Instruction_OBSERVE(BIR_Instruction):
         for obs in self.block["obss"]:
             obs = self.map_expressions(obs, self.irsb_c)
             if obs.ty == Type.int_1:
-                obs = obs.cast_to(Type.int_64)
+                # TODO: make a new special register for 1bit obs
+                obs = obs.cast_to(Type.int_8)
             self.put(obs, 'obs')
 
             # Note: enables system call
