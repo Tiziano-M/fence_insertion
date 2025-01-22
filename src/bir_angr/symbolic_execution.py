@@ -11,7 +11,7 @@ from bir_angr.utils.data_section_parser import *
 from bir_angr.bir.concretization_strategy_bir import *
 from bir_angr.local_loop_seer_bir import LocalLoopSeerBIR
 from bir_angr.shadow_object import ShadowObject
-from bir_angr.trace_exporter import get_input_state, TraceExporter, REGISTERS
+from bir_angr.trace_exporter import get_input_state, TraceExporter, REGISTERS, TraceCollector
 from bir_angr.default_filler_memory import *
 
 parser = argparse.ArgumentParser()
@@ -24,6 +24,7 @@ parser.add_argument('-n', "--num_steps", help="Number of steps", default=None, t
 parser.add_argument('-dc', "--data_constraints", help="Add data section constraints to states ", default=False, action='store_true')
 parser.add_argument('-ce', "--conc_execution", help="Execute a program from two initial states", default=False, action='store_true')
 parser.add_argument('-et', "--extract_traces", help="Extract traces", default=False, action='store_true')
+parser.add_argument('-rt', "--rosette_traces", help="Export traces in Rosette format", default=False, action='store_true')
 parser.add_argument('-eop', "--extract_operands", help="Extract operands", default=False, action='store_true')
 parser.add_argument('-cobs', "--compare_obs", help="Compare observations", default=False, action='store_true')
 parser.add_argument('-cobs_s', "--compare_obs_short", help="Compare observations and stop at the first true", default=False, action='store_true')
@@ -393,84 +394,70 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 
-def run():
-    # handles some zeroexts unsupported by bir
-    if True: change_simplification()
+def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename):
+    insns = None
+    if args.extract_traces:
+        insns = disassemble_prog(binfile)
+    if args.extract_operands and (not args.extract_traces):
+        raise Exception("trace exporter disabled, operands cannot be exported")
+    if args.compare_obs_short and (not args.compare_obs):
+        raise Exception("compare_obs must be enabled to use compare_obs_short")
 
-    with open(args.entryfilename, "r") as entry_json:
-        entry = json.load(entry_json)
+    BASE_OBS_OPERAND_ID = "0"
+    TARGET_OBS_OPERAND_ID = "2"
+    obs_operand_id = int(next((k for (k,v) in obsrefmap.items() if v["obsid"] == TARGET_OBS_OPERAND_ID), None))
 
-    # binary program to be loaded into memory
-    binfile = entry["bin"]
-    # sends the bir program in json format to the lifter
-    birprogjson = entry["birprogram"]
-    entry_addr = entry["entry"]
-    exit_addrs = entry["exits"]
+    if args.compare_obs:
+        count_obs_eq = {True: [], False: []}
+        obs_base_id = int(next((k for (k,v) in obsrefmap.items() if v["obsid"] == BASE_OBS_OPERAND_ID), None))
 
-    data_constraints = None
-    if args.data_constraints and not args.compare_obs_short: # FIXME: temporary fix
-        data_constraints = extract_data_constraints(binfile)
+    save_traces_to_json = all(not option for option in (args.rosette_traces, args.compare_obs, args.compare_obs_short))
+    if save_traces_to_json:
+        assert traces_filename is not None, "A filename must be provided when saving traces to JSON."
+        tcollector = TraceCollector()
 
-    all_regs = True
-    # sets them in the register list of the architecture
-    regs = set_registers(all_regs, birprogjson)
+    texporter = TraceExporter(regs=regs,
+                              extract_operands=args.extract_operands,
+                              obs_operand_id=obs_operand_id,
+                              all_p = True)
 
-    # initializes the angr project
-    proj = angr.Project(binfile, main_opts={'backend': 'bir'}, load_options={'auto_load_libs': False})
+    for exp in exps:
+        (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
+        assert (input1 and input2), "Both input states must be provided"
 
-    # shadow memory space object
-    _shadow_object = ShadowObject(proj.loader)
-    proj.loader._internal_load(_shadow_object)
+        texporter.obs_json = {}
+        texporter.traces_json = {}
+        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, insns, texporter)
+        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, insns, texporter)
 
-    # sets addresses for assertion and observations in the kernel region
-    extern_addr = proj.loader.kernel_object.min_addr+0x14
-    # sets addresses for shadow instructions in an external region
-    shadow_addr = _shadow_object.min_addr - proj.loader.main_object.min_addr
-    bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
-
-    if args.conc_execution:
-        exps = entry["experiments"]
-        insns = None
         if args.extract_traces:
-            insns = disassemble_prog(binfile)
-        if args.extract_operands and (not args.extract_traces):
-            raise Exception("trace exporter disabled, operands cannot be exported")
-        if args.compare_obs_short and (not args.compare_obs):
-            raise Exception("compare_obs must be enabled to use compare_obs_short")
-
-        target_obsoperandid = "2"
-        obs_operand_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == target_obsoperandid), None))
-
-        if args.compare_obs:
-            count_obs_eq = {True: [], False: []}
-            obs_base_id = int(next((k for (k,v) in entry["obsrefmap"].items() if v["obsid"] == "0"), None))
-
-        texporter = TraceExporter(regs=entry.get("registers", None),
-                                  extract_operands=args.extract_operands,
-                                  obs_operand_id=obs_operand_id,
-                                  all_p = True)
-        for exp in exps:
-            (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
-            assert (input1 and input2) is not None
-
-            texporter.obs_json = {}
-            texporter.traces_json = {}
-            conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, insns, texporter)
-            conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, insns, texporter)
-            if args.extract_traces:
-                if False: print(json.dumps(texporter.traces_json, indent=4))
+            if False:
+                print(json.dumps(texporter.traces_json, indent=4))
+            if save_traces_to_json:
+                tcollector.add_trace(texporter, exp["id"], exp["result"])
+            if args.rosette_traces:
                 texporter.rosette_input(exp["id"], exp["result"], exp["filename"])
 
-            if args.compare_obs:
-                if False: print(json.dumps(texporter.obs_json, indent=4))
-                res = texporter.compare_obs(obs_base_id)
-                count_obs_eq[res].append(exp["id"])
-                if res is True and args.compare_obs_short:
-                    break
         if args.compare_obs:
-            print(count_obs_eq)
-        return
+            #print(json.dumps(texporter.obs_json, indent=4))
+            res = texporter.compare_obs(obs_base_id)
+            count_obs_eq[res].append(exp["id"])
+            if res is True and args.compare_obs_short:
+                break
 
+    if args.compare_obs:
+        print(count_obs_eq)
+
+    if save_traces_to_json:
+        tcollector.export_to_file(traces_filename)
+
+    if args.extract_traces:
+        print("Finished exporting traces.")
+
+    return
+
+
+def run_symb_exec(proj, entry_addr, exit_addrs, data_constraints, regs, extern_addr):
     # sets the initial state and registers
     state = proj.factory.entry_state(addr=entry_addr, remove_options=angr.options.simplification)
     init_regs(state, regs)
@@ -540,6 +527,52 @@ def run():
             print("Restarting symbolic execution with new concretizations...\n")
         else:
             break
+
+
+def run():
+    # handles some zeroexts unsupported by bir
+    if True: change_simplification()
+
+    with open(args.entryfilename, "r") as entry_json:
+        entry = json.load(entry_json)
+
+    # binary program to be loaded into memory
+    binfile = entry["bin"]
+    # sends the bir program in json format to the lifter
+    birprogjson = entry["birprogram"]
+    entry_addr = entry["entry"]
+    exit_addrs = entry["exits"]
+    regs = entry.get("registers", None)
+    obsrefmap = entry.get("obsrefmap", None)
+    traces_filename = entry.get("traces_filename", None)
+
+    data_constraints = None
+    if args.data_constraints and not args.compare_obs_short: # FIXME: temporary fix
+        data_constraints = extract_data_constraints(binfile)
+
+    all_regs = True
+    # sets them in the register list of the architecture
+    regs = set_registers(all_regs, birprogjson)
+
+    # initializes the angr project
+    proj = angr.Project(binfile, main_opts={'backend': 'bir'}, load_options={'auto_load_libs': False})
+
+    # shadow memory space object
+    _shadow_object = ShadowObject(proj.loader)
+    proj.loader._internal_load(_shadow_object)
+
+    # sets addresses for assertion and observations in the kernel region
+    extern_addr = proj.loader.kernel_object.min_addr+0x14
+    # sets addresses for shadow instructions in an external region
+    shadow_addr = _shadow_object.min_addr - proj.loader.main_object.min_addr
+    bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
+
+    if args.conc_execution:
+        run_conc_exec(proj, entry["experiments"], binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename)
+    else:
+        run_symb_exec(proj, entry_addr, exit_addrs, data_constraints, regs, extern_addr)
+
+    return
 
 
 

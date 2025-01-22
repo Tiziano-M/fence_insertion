@@ -1,4 +1,5 @@
 import angr
+import json
 
 
 REGISTERS = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "type": "imm1"}, {"name": "ProcState_V", "type": "imm1"}, 
@@ -40,6 +41,33 @@ def _proc_input_state(inp, statename):
 
 def get_input_state(in_data, statename):
 	  return _proc_input_state(in_data, statename)
+
+
+
+class TraceCollector:
+
+    def __init__(self):
+        self.collected_traces = []
+
+    def add_trace(self, trace_exporter, exp_id, exp_res):
+
+        exp_typ = trace_exporter.get_trace_type(exp_res)
+
+        states_run0, states_run1 = trace_exporter.process_and_get_states(exp_typ)
+        trace_exporter.traces_json[0]["states"] = states_run0
+        trace_exporter.traces_json[1]["states"] = states_run1
+
+        wrapped_data = {
+            "id" : exp_id, 
+            "result" : exp_res, 
+            "traces" : trace_exporter.traces_json
+            }
+
+        self.collected_traces.append(wrapped_data)
+
+    def export_to_file(self, filename):
+        with open(filename, "w") as json_file:
+            json.dump(self.collected_traces, json_file, indent=4)
 
 
 class TraceExporter:
@@ -306,32 +334,48 @@ class TraceExporter:
         else:
             raise Exception("No trace cached")
 
-    def rosette_input(self, exp_id, exp_res, exp_filename):
-        if not self.traces_json:
-            raise Exception("traces json empty")
+    def process_and_get_states(self, exp_typ):
+        if not self.traces_json or len(self.traces_json) < 2:
+            raise ValueError("traces JSON must contain at least two runs")
 
-        if exp_res == "true":
-            exp_typ = "p"
-        elif exp_res == "false":
-            exp_typ = "c"
-        else:
-            raise Exception(f"Unexpected experiment result: {exp_res}")
-        (states_run0, states_run1) = (self.traces_json[0]["states"], self.traces_json[1]["states"])
+        states_run0 = self.traces_json[0]["states"]
+        states_run1 = self.traces_json[1]["states"]
+
         if self.all_p:
             self.cache_ctrace(states_run0, states_run1, exp_typ)
 
+            if exp_typ == "p":
+                aligned_states0 = self.align_trace(states_run0)
+                aligned_states1 = self.align_trace(states_run1)
+
+                if aligned_states0 is not None:
+                    states_run0 = aligned_states0
+                if aligned_states1 is not None:
+                    states_run1 = aligned_states1
+
+        return states_run0, states_run1
+
+    @staticmethod
+    def get_trace_type(exp_res):
+        if exp_res == "true":
+            return "p"
+        elif exp_res == "false":
+            return "c"
+        else:
+            raise ValueError(f"Unexpected experiment result: {exp_res}")
+
+    def rosette_input(self, exp_id, exp_res, exp_filename):
+        exp_typ = self.get_trace_type(exp_res)
+
+        states_run0, states_run1 = self.process_and_get_states(exp_typ)
+
         text_run1 = self.rosette_input_text(states_run0, 0, exp_id, exp_typ)
         text_run2 = self.rosette_input_text(states_run1, 1, exp_id, exp_typ)
+
         with open(exp_filename, "w") as f:
             f.write(text_run1 + text_run2)
 
     def rosette_input_text(self, states, run_id, exp_id, exp_typ):
-        if self.all_p and exp_typ == "p":
-            trimmed_states = self.align_trace(states)
-            if trimmed_states is not None:
-                #print(f"exp ID trimmed: {exp_id}")
-                states = trimmed_states
-
         state_ids = []
         text = ""
         for state in states:
