@@ -1,2 +1,26 @@
 angr==9.0.9572
 
+# angr dependencies with frozen versions
+ailment==9.0.9572
+archinfo==9.0.9572
+cachetools==4.2.2
+capstone==4.0.2
+cffi==1.14.6
+claripy==9.0.9572
+cle==9.0.9572
+CppHeaderParser==2.7.4
+dpkt==1.9.7.1
+GitPython==3.1.20
+itanium-demangler==1.0
+mulpyplexer==0.9
+nampa==0.1.1
+networkx==2.6.2
+progressbar2==3.53.1
+protobuf==3.17.3
+psutil==5.8.0
+pycparser==2.20
+pyvex==9.0.9572
+rpyc==5.0.1
+sortedcontainers==2.4.0
+unicorn==1.0.2rc4
+
