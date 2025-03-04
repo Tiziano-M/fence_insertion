@@ -10,7 +10,7 @@ claripy==9.0.9572
 cle==9.0.9572
 CppHeaderParser==2.7.4
 dpkt==1.9.7.1
-GitPython==3.1.20
+GitPython==3.1.24
 itanium-demangler==1.0
 mulpyplexer==0.9
 nampa==0.1.1
