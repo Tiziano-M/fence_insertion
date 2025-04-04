@@ -579,9 +579,10 @@ def run():
 def main():
     thread = multiprocessing.Process(target=run)
     thread.start()
-    thread.join(1200)
+    thread.join(1800)
     if thread.is_alive():
         thread.terminate()
+        thread.join()
         print("angr symbolic execution timed out!")
 
 
