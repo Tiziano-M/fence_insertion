@@ -180,29 +180,29 @@ def find_loops(proj):
     return (cfg, loop_finder.loops)
 
 
-def set_registers(all_regs, birprog):
-    if args.conc_execution and all_regs:
-        bir_angr.bir.arch_bir.config_regs(REGISTERS)
-        regs = None
+def set_registers(birprog, default_regs, do_conc_exec):
+    if default_regs and do_conc_exec:
+        bir_angr.bir.arch_bir.config_registers(birprog, REGISTERS)
+        return None
     else:
-        # extracts the registers from the input program and sets them in the register list of the architecture
-        regs = bir_angr.bir.arch_bir.get_register_list(birprog)
-    return regs
-
+        return bir_angr.bir.arch_bir.config_registers(birprog, [])
 
 def init_regs(state, regs):
+    type_to_size = {
+        "imm64": 64,
+        "imm32": 32,
+        "imm16": 16,
+        "imm8": 8,
+        "imm1": 1,
+    }
+
     for reg in regs:
-        if reg["type"] == "imm64":
-            sz = 64
-        elif reg["type"] == "imm32":
-            sz = 32
-        elif reg["type"] == "imm16":
-            sz = 16
-        elif reg["type"] == "imm8":
-            sz = 8
-        elif reg["type"] == "imm1":
-            sz = 1
-        setattr(state.regs, reg["name"], claripy.BVS(reg["name"], sz))
+        reg_name = reg["name"]
+        try:
+            sz = type_to_size[reg["type"]]
+        except KeyError:
+            raise ValueError(f"Unknown register type of {reg_name}")
+        setattr(state.regs, reg_name, claripy.BVS(reg_name, sz))
 
 
 def set_state_options(state):
@@ -539,20 +539,26 @@ def run():
     # binary program to be loaded into memory
     binfile = entry["bin"]
     # sends the bir program in json format to the lifter
-    birprogjson = entry["birprogram"]
+    birprogpath = entry["birprogram"]
     entry_addr = entry["entry"]
     exit_addrs = entry["exits"]
     regs = entry.get("registers", None)
     obsrefmap = entry.get("obsrefmap", None)
     traces_filename = entry.get("traces_filename", None)
 
+    try:
+        with open(birprogpath, "r") as f:
+            birprogjson = json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load BIR program: {e}")
+
     data_constraints = None
     if args.data_constraints and not args.compare_obs_short: # FIXME: temporary fix
         data_constraints = extract_data_constraints(binfile)
 
-    all_regs = True
+    default_regs = True
     # sets them in the register list of the architecture
-    regs = set_registers(all_regs, birprogjson)
+    regs = set_registers(birprogjson, default_regs, args.conc_execution)
 
     # initializes the angr project
     proj = angr.Project(binfile, main_opts={'backend': 'bir'}, load_options={'auto_load_libs': False})

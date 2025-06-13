@@ -3,60 +3,59 @@ from archinfo.arch import register_arch
 import json
 
 
-def regs_extraction_from_json(birprog, regs):
-    try:
-        if isinstance(birprog, list):
-            for dic in birprog:
-                if isinstance(dic, dict):
-                    for key,value in dic.items():
-                        if key == "var":
-                            reg = dic.get(key)
-                            if reg["name"] != "MEM" and "*" not in reg["name"]:
-                                regs.append(reg)
-                        else:
-                            regs_extraction_from_json(value, regs)
-        elif isinstance(birprog, dict):
-            for key,value in birprog.items():
-                if key == "var":
-                    reg = birprog.get(key)
-                    if reg["name"] != "MEM" and "*" not in reg["name"]:
-                        regs.append(reg)
-                else:
-                    regs_extraction_from_json(value, regs)
-    except:
-        raise Exception("Error of bir program in json format")
+def regs_extraction_from_json(birprogjson):
+    regs = []
+
+    def extracting(j):
+        if isinstance(j, dict):
+            if "var" in j:
+                reg = j["var"]
+                if reg["name"] != "MEM" and "*" not in reg["name"]:
+                    regs.append(reg)
+            else:
+                for v in j.values():
+                    extracting(v)
+        elif isinstance(j, list):
+            for i in j:
+                extracting(i)
+
+    extracting(birprogjson)
     return regs
 
+def regs_extraction_from_birprog(birprogjson):
+    return regs_extraction_from_json(birprogjson)
+
 def config_regs(regs):
+    type_to_size = {
+        "imm64": 8,
+        "imm32": 4,
+        "imm16": 2,
+        "imm8": 1,
+        "imm1": 1,
+    }
+
     vex_offset = 40
     for reg in regs:
         reg_typ = reg["type"]
-        if reg_typ == "imm64":
-            sz = 8
-        elif reg_typ == "imm32":
-            sz = 4
-        elif reg_typ == "imm16":
-            sz = 2
-        elif reg_typ == "imm8":
-            sz = 1
-        elif reg_typ == "imm1":
-            sz = 1
-        else:
-            raise Exception(f"Unknown register type: {reg_typ}")
+        try:
+            sz = type_to_size[reg_typ]
+        except KeyError:
+            raise ValueError(f"Unknown register type: {reg_typ}")
         vex_offset = vex_offset + 8
         ArchBIR.register_list.append(Register(name=reg["name"], size=sz, vex_offset=vex_offset))
 
-def get_register_list(birprog):
-    with open(birprog, "r") as json_file:
-        birprogjson = json.load(json_file)
-    # gets all BVAR in the json BIR program
-    regs = regs_extraction_from_json(birprogjson, [])
-    # removes dupilcates using hashed tuples
-    regs = [dict(t) for t in {tuple(sorted(d.items())) for d in regs}]
-    # reorders the list
-    regs = sorted(regs, key=lambda k: k['name'])
-    config_regs(regs)
+def get_unique_regs(regs):
+    return sorted(
+        # removes dupilcates using hashed tuples
+        [dict(t) for t in {tuple(sorted(d.items())) for d in regs}],
+        key=lambda k: k['name']
+    )
 
+def config_registers(birprog, def_regs):
+    # extracts the registers from the input program and sets them in the register list of the architecture
+    regs = regs_extraction_from_birprog(birprog)
+    regs = get_unique_regs(def_regs + regs)
+    config_regs(regs)
     return regs
 
 
