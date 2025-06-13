@@ -88,7 +88,7 @@ class LifterBIR(Lifter):
             LifterBIR.cache_lifting = self.prelift()
         return LifterBIR.cache_lifting
 
-    def lift(self):
+    def _lift(self):
         try:
             irsbs = self.get_irsbs()
 
