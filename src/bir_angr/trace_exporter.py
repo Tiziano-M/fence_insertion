@@ -19,6 +19,7 @@ REGISTER_TYPES = {
         "imm8": 8,
         "imm1": 8
     }
+FLAG_REGS = {"ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"}
 
 # https://github.com/kth-step/EmbExp-Logs/blob/master/lib/experiment.py
 def _proc_input_state(inp, statename):
@@ -71,8 +72,6 @@ class TraceCollector:
 
 
 class TraceExporter:
-    EMPTY_REGISTERS = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
-    EMPTY_OPERANDS = [(0, 64)] * 6
 
     def __init__(self,
                  regs,
@@ -81,10 +80,17 @@ class TraceExporter:
                  traces_json=None,
                  obs_json=None,
                  ctrace=None,
-                 all_p = False
+                 all_p = False,
+                 bitwidth = 64
                  ):
-        self.regs = regs + [{"name": "ip", 'type': 'imm64'}] if regs is not None else REGISTERS
-        self.all_regs = False if regs is not None else True
+
+        if regs is not None:
+            self.regs = regs + [{"name": "ip", "type": "imm64"}]
+            self.all_regs = False
+        else:
+            self.regs = REGISTERS
+            self.all_regs = True
+
         self.traces_json = traces_json if traces_json is not None else {}
         self.obs_json = obs_json if obs_json is not None else {}
         self.state_id = None
@@ -92,6 +98,9 @@ class TraceExporter:
         self.obs_operand_id = obs_operand_id
         self._cache_ctrace = ctrace
         self.all_p = all_p
+        self.bitwidth = bitwidth
+        self.empty_registers = [(reg["name"], (0, self.bitwidth)) for reg in REGISTERS]
+        self.empty_operands = [(0, self.bitwidth)] * 6
 
     def init_trace(self, run_id):
         self.traces_json[run_id] = {"states" : []}
@@ -106,7 +115,6 @@ class TraceExporter:
         dict_state["memory"] = self.save_mem(state)
 
         #dict_state["observations"] = self.save_obs(state)
-        #dict_state["operands"] = self.save_operands(state, insn) if insn is not None else []
         dict_state["operands"] = [] #self.save_obs_operands(state) if self.extract_operands else []
 
         self.traces_json[run_id]["states"].append(dict_state)
@@ -130,13 +138,7 @@ class TraceExporter:
                 list_regs.append((reg_n, reg_v))
             except Exception:
                 if self.all_regs:
-                    if reg["type"] == "imm64":
-                        sz = 64
-                    elif reg["type"] == "imm1":
-                        sz = 8
-                    else:
-                        raise Exception(f"Unexpected register type {reg}")
-                    list_regs.append((reg["name"], ((0, sz))))
+                    list_regs.append((reg["name"], ((0, REGISTER_TYPES[reg["type"]]))))
                 else:
                     raise Exception(f"Register {reg_n} not found in the state")
         return list_regs
@@ -180,50 +182,6 @@ class TraceExporter:
         state.observations.list_obs.clear()
         return list_obs
 
-    def save_operands(self, state, insn):
-        def set_reg_op_from_state(state, operands):
-            roperands = []
-            for reg in operands:
-                try:
-                    if reg[0] == "x":
-                        reg_num = reg[1:]
-                        regname = "R" + reg_num
-                    elif reg == "sp":
-                        regname = "SP_EL0"
-                    elif reg.startswith("ProcState_") and (reg[-1] in ["C", "N", "V", "Z"]):
-                        regname = reg
-                    else:
-                        raise Exception("Unknown register ", reg)
-
-                    val = getattr(state.regs, regname)
-                    if val.symbolic:
-                        roperands.append((regname, (0, val.size())))
-                    else:
-                        assert val.size() == val.args[1]
-                        roperands.append((regname, (val.args[0], val.args[1])))
-                except Exception:
-                    raise Exception(f"Error with register {reg_name} in state {state}")
-            return roperands
-
-        def extract_reg_operands(insn, operands):
-            for operand in insn.operands:
-                if isinstance(operand, angr.analyses.disassembly.RegisterOperand):
-                    if isinstance(operand.register, angr.analyses.disassembly.Register):
-                        operands.add(operand.register.reg)
-                elif isinstance(operand, angr.analyses.disassembly.MemoryOperand):
-                    for val_op in operand.values:
-                        if isinstance(val_op, angr.analyses.disassembly.Register):
-                            operands.add(val_op.reg)
-                elif isinstance(operand, angr.analyses.disassembly.ConstantOperand):
-                    continue
-                else:
-                    raise Exception("Unknown operand: ", operand)
-            return operands
-
-        operands = extract_reg_operands(insn, set())
-        if insn.insn.update_flags:
-            operands.update(["ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"])
-        return set_reg_op_from_state(state, operands)
 
     def compare_obs(self, obs_base_id):
         obslist1 = self.obs_json[0]
@@ -271,9 +229,9 @@ class TraceExporter:
                         trim_states.append({"state_id": n,
                                             "instruction": "empty state",
                                             "instr_address": 0, # no matter
-                                            "registers": TraceExporter.EMPTY_REGISTERS,
+                                            "registers": self.empty_registers,
                                             "memory": {},
-                                            "operands": TraceExporter.EMPTY_OPERANDS})
+                                            "operands": self.empty_operands})
                     return trim_states
             return None
         else:
@@ -284,9 +242,9 @@ class TraceExporter:
             return {"state_id": sid,
                     "instruction": "empty state",
                     "instr_address": saddr, # no matter, just for a check
-                    "registers": TraceExporter.EMPTY_REGISTERS,
+                    "registers": self.empty_registers,
                     "memory": {},
-                    "operands": TraceExporter.EMPTY_OPERANDS}
+                    "operands": self.empty_operands}
 
 
         if self._cache_ctrace is not None:
@@ -402,8 +360,10 @@ class TraceExporter:
     def regs_text(self, regs_json, indentation):
         regs = f"{indentation}(vector-immutable\n"
         reg_type = "REG" if self.all_regs else "REGn"
-        for reg in regs_json:
-            regs += f"{indentation}   ({reg_type} (bv {reg[1][0]} (bitvector {reg[1][1]})))\t; Register: {reg[0]}\n"
+        for (name, (val, sz)) in regs_json:
+            if not name in FLAG_REGS:
+                assert sz == self.bitwidth
+            regs += f"{indentation}   ({reg_type} (bv {val} (bitvector {self.bitwidth})))\t; Register: {name}\n"
         return f"\t{regs}{indentation}   )\n\n"
 
     def mem_text(self, mem_json, indentation):
@@ -415,27 +375,30 @@ class TraceExporter:
 
     def iaddr_text(self, iaddr_json, indentation):
         iaddr = f"{indentation}; Instruction Address\n"
-        iaddr += f"{indentation}  (bv {iaddr_json} (bitvector 64))\n"
+        iaddr += f"{indentation}  (bv {iaddr_json} (bitvector {self.bitwidth}))\n"
         return f"\t{iaddr}\n"
 
     def obs_text(self, obs_json, indentation):
         obss = f"{indentation}; Obs\n"
         obss += f"{indentation}  (vector-immutable\n"
-        for obs in obs_json:
-            obss += f"{indentation}   (bv {obs[0]} (bitvector {obs[1]}))\n"
+        for (val, sz) in obs_json:
+            assert sz == self.bitwidth
+            obss += f"{indentation}   (bv {val} (bitvector {self.bitwidth}))\n"
         return f"\t{obss}{indentation}   )\n"
 
     def operands_text(self, operands_json, indentation):
         opss = f"{indentation}; Operands\n"
         opss += f"{indentation}  (vector-immutable\n"
-        for ops in operands_json:
-            opss += f"{indentation}   (OPERAND (bv {ops[1][0]} (bitvector {ops[1][1]})))\t; Operand: {ops[0]}\n"
+        for (name, (val, sz)) in operands_json:
+            assert sz == self.bitwidth
+            opss += f"{indentation}   (OPERAND (bv {val} (bitvector {self.bitwidth})))\t; Operand: {name}\n"
         return f"\t{opss}{indentation}   )\n"
 
     def obs_operands_text(self, operands_json, indentation):
         opss = f"{indentation}; Operands\n"
         opss += f"{indentation}  (vector-immutable\n"
-        for ops in operands_json:
-            opss += f"{indentation}   (OPERAND (bv {ops[0]} (bitvector {ops[1]})))\n"
+        for (val, sz) in operands_json:
+            assert sz == self.bitwidth
+            opss += f"{indentation}   (OPERAND (bv {val} (bitvector {self.bitwidth})))\n"
         return f"\t{opss}{indentation}   )\n"
 
