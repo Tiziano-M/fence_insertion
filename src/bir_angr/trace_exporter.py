@@ -99,7 +99,7 @@ class TraceExporter:
         self._cache_ctrace = ctrace
         self.all_p = all_p
         self.bitwidth = bitwidth
-        self.empty_registers = [(reg["name"], (0, self.bitwidth)) for reg in REGISTERS]
+        self.empty_registers = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
         self.empty_operands = [(0, self.bitwidth)] * 6
 
     def init_trace(self, run_id):
@@ -216,6 +216,15 @@ class TraceExporter:
                     if iaddr_run1 != self._cache_ctrace[i][1]:
                         raise Exception(f"{iaddr_run1} does not macth with {self._cache_ctrace[i][1]}")
 
+    def empty_state(self, sid, saddr):
+        return {"state_id": sid,
+                "instruction": "empty state",
+                "instr_address": saddr, # no matter, just for a check
+                "registers": self.empty_registers,
+                "memory": {},
+                "operands": self.empty_operands
+                }
+
     def trim_trace(self, states):
         if self._cache_ctrace is not None:
             trim_states = []
@@ -226,71 +235,57 @@ class TraceExporter:
                     trim_states.append(state)
                 else:
                     for n in range(i, len(self._cache_ctrace)):
-                        trim_states.append({"state_id": n,
-                                            "instruction": "empty state",
-                                            "instr_address": 0, # no matter
-                                            "registers": self.empty_registers,
-                                            "memory": {},
-                                            "operands": self.empty_operands})
+                        trim_states.append(self.empty_state(n, 0))
                     return trim_states
             return None
         else:
             raise Exception("No trace cached")
 
     def align_trace(self, states):
-        def empty_state(sid, saddr):
-            return {"state_id": sid,
-                    "instruction": "empty state",
-                    "instr_address": saddr, # no matter, just for a check
-                    "registers": self.empty_registers,
-                    "memory": {},
-                    "operands": self.empty_operands}
+        if self._cache_ctrace is None:
+            raise Exception("No trace cached")
 
+        if ((len(states) == len(self._cache_ctrace)) and
+           (all(s["instr_address"] == ca for (s,(_,ca)) in zip(states,self._cache_ctrace)))):
+            return None
 
-        if self._cache_ctrace is not None:
+        aligned_states = []
+        states_iter = iter(states)
+        pstate = next(states_iter)
+        for (cstate_id, ciaddr) in self._cache_ctrace:
+            if pstate is None:
+                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                continue
 
-            if ((len(states) == len(self._cache_ctrace)) and
-               (all(s["instr_address"] == ca for (s,(_,ca)) in zip(states,self._cache_ctrace)))):
-                 return None
+            piaddr = pstate["instr_address"]
+            if piaddr > ciaddr:
+                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                continue
 
-            aligned_states = []
-            states_iter = iter(states)
-            pstate = next(states_iter)
-            for (cstate_id, ciaddr) in self._cache_ctrace:
-                if pstate is None:
-                    aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
-                    continue
-
-                piaddr = pstate["instr_address"]
-                if piaddr > ciaddr:
-                    aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
-                    continue
+            try:
+                #print(piaddr, ciaddr)
+                while piaddr < ciaddr:
+                    #print(f"I: {piaddr}-> skip")
+                    pstate = next(states_iter)
+                    piaddr = pstate["instr_address"]
 
                 try:
-                    #print(piaddr, ciaddr)
-                    while piaddr < ciaddr:
-                        #print(f"I: {piaddr}-> skip")
+                    if piaddr == ciaddr:
+                        aligned_states.append(pstate)
                         pstate = next(states_iter)
-                        piaddr = pstate["instr_address"]
-
-                    try:
-                        if piaddr == ciaddr:
-                            aligned_states.append(pstate)
-                            pstate = next(states_iter)
-                        else:
-                            aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
-                    except StopIteration:
-                        pstate = None
+                    else:
+                        aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
                 except StopIteration:
                     pstate = None
-                    if cstate_id == len(self._cache_ctrace)-1:
-                        aligned_states.append(empty_state(f"{cstate_id}e", ciaddr))
+            except StopIteration:
+                pstate = None
+                if cstate_id == len(self._cache_ctrace)-1:
+                    aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
 
-            assert len(aligned_states) == len(self._cache_ctrace)
-            assert all(aligned_states[i]["instr_address"] == self._cache_ctrace[i][1] for i in range(len(self._cache_ctrace)))
-            return aligned_states
-        else:
-            raise Exception("No trace cached")
+        assert len(aligned_states) == len(self._cache_ctrace)
+        assert all(aligned_states[i]["instr_address"] == self._cache_ctrace[i][1] for i in range(len(self._cache_ctrace)))
+        return aligned_states
+
 
     def process_and_get_states(self, exp_typ):
         if not self.traces_json or len(self.traces_json) < 2:
