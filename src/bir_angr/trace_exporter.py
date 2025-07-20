@@ -77,6 +77,7 @@ class TraceExporter:
                  regs,
                  extract_operands,
                  obs_operand_id,
+                 obs_post_operand_id,
                  traces_json=None,
                  obs_json=None,
                  ctrace=None,
@@ -96,11 +97,13 @@ class TraceExporter:
         self.state_id = None
         self.extract_operands = extract_operands
         self.obs_operand_id = obs_operand_id
+        self.obs_post_operand_id = obs_post_operand_id
         self._cache_ctrace = ctrace
         self.all_p = all_p
         self.bitwidth = bitwidth
         self.empty_registers = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
         self.empty_operands = [(0, self.bitwidth)] * 6
+        self.empty_post_operands = [(0, self.bitwidth)] * 2
 
     def init_trace(self, run_id):
         self.traces_json[run_id] = {"states" : []}
@@ -115,14 +118,22 @@ class TraceExporter:
         dict_state["memory"] = self.save_mem(state)
 
         #dict_state["observations"] = self.save_obs(state)
-        dict_state["operands"] = [] #self.save_obs_operands(state) if self.extract_operands else []
+        dict_state["operands"] = []
+        dict_state["post_operands"] = []
 
         self.traces_json[run_id]["states"].append(dict_state)
         self.state_id += 1
 
     def add_operands_to_trace(self, run_id, state):
-        ops = self.save_obs_operands(state)
+        ops = self.save_obs_operands(state, self.obs_operand_id)
         self.traces_json[run_id]["states"][-1]["operands"].extend(ops)
+
+        if self.obs_post_operand_id is not None:
+            post_ops = self.save_obs_operands(state, self.obs_post_operand_id)
+            self.traces_json[run_id]["states"][-1]["post_operands"].extend(post_ops)
+
+        state.observations.list_obs.clear()
+        return
 
     def save_regs(self, state):
         list_regs = []
@@ -165,13 +176,10 @@ class TraceExporter:
             self.obs_json[run_id].append(obsjson)
         return self.obs_json[run_id]
 
-    def save_obs_operands(self, state):
-        if self.obs_operand_id is None:
-            raise Exception("Operand id is not set")
-
+    def save_obs_operands(self, state, obs_operand_id):
         list_obs = []
         for (obs_id,_,obs_list,_) in state.observations.list_obs:
-            if obs_id == self.obs_operand_id:
+            if obs_id == obs_operand_id:
                 for obs in obs_list:
                     if obs.symbolic:
                         raise Exception(f"Observation value not as expected: {obs}")
@@ -179,7 +187,6 @@ class TraceExporter:
                         assert obs.size() == obs.args[1]
                         obs_v = (obs.args[0], obs.args[1])
                     list_obs.append(obs_v)
-        state.observations.list_obs.clear()
         return list_obs
 
 
@@ -222,7 +229,8 @@ class TraceExporter:
                 "instr_address": saddr, # no matter, just for a check
                 "registers": self.empty_registers,
                 "memory": {},
-                "operands": self.empty_operands
+                "operands": self.empty_operands,
+                "post_operands": self.empty_post_operands
                 }
 
     def trim_trace(self, states):
@@ -342,6 +350,7 @@ class TraceExporter:
             text += self.mem_text(state["memory"], indentation)
             text += self.iaddr_text(state["instr_address"], indentation)
             text += self.obs_operands_text(state["operands"], indentation)
+            text += self.obs_post_operands_text(state["post_operands"], indentation)
             #text += self.obs_text(state["observations"], indentation)
             text += "))\n"
             state_ids.append(state_id_txt)
@@ -395,5 +404,13 @@ class TraceExporter:
         for (val, sz) in operands_json:
             assert sz == self.bitwidth
             opss += f"{indentation}   (OPERAND (bv {val} (bitvector {self.bitwidth})))\n"
+        return f"\t{opss}{indentation}   )\n\n"
+
+    def obs_post_operands_text(self, post_operands_json, indentation):
+        opss = f"{indentation}; Post-Operands\n"
+        opss += f"{indentation}  (vector-immutable\n"
+        for (val, sz) in post_operands_json:
+            assert sz == self.bitwidth
+            opss += f"{indentation}   (POST-OPERAND (bv {val} (bitvector {self.bitwidth})))\n"
         return f"\t{opss}{indentation}   )\n"
 

@@ -405,7 +405,17 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
 
     BASE_OBS_OPERAND_ID = "0"
     TARGET_OBS_OPERAND_ID = "2"
-    obs_operand_id = int(next((k for (k,v) in obsrefmap.items() if v["obsid"] == TARGET_OBS_OPERAND_ID), None))
+    TARGET_OBS_POST_OPERAND_ID = "3"
+
+    obs_operand_id = next((k for (k,v) in obsrefmap.items() if v["obsid"] == TARGET_OBS_OPERAND_ID), None)
+    obs_post_operand_id = next((k for (k,v) in obsrefmap.items() if v["obsid"] == TARGET_OBS_POST_OPERAND_ID), None)
+
+    if args.extract_operands:
+        if obs_operand_id is None:
+            raise Exception("Operand id is not set")
+        obs_operand_id = int(obs_operand_id)
+
+    obs_post_operand_id = int(obs_post_operand_id) if obs_post_operand_id is not None else None
 
     if args.compare_obs:
         count_obs_eq = {True: [], False: []}
@@ -419,6 +429,7 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
     texporter = TraceExporter(regs=regs,
                               extract_operands=args.extract_operands,
                               obs_operand_id=obs_operand_id,
+                              obs_post_operand_id=obs_post_operand_id,
                               all_p = True)
 
     for exp in exps:
