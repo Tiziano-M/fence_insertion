@@ -394,7 +394,7 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 
-def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename):
+def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com):
     insns = None
     if args.extract_traces:
         insns = disassemble_prog(binfile)
@@ -430,7 +430,8 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
                               extract_operands=args.extract_operands,
                               obs_operand_id=obs_operand_id,
                               obs_post_operand_id=obs_post_operand_id,
-                              all_p = True)
+                              all_p = True,
+                              use_com = use_com)
 
     for exp in exps:
         (input1, input2) = (get_input_state(exp, "input_1"), get_input_state(exp, "input_2"))
@@ -556,6 +557,7 @@ def run():
     regs = entry.get("registers", None)
     obsrefmap = entry.get("obsrefmap", None)
     traces_filename = entry.get("traces_filename", None)
+    use_com = entry.get("use_com", False)
 
     try:
         with open(birprogpath, "r") as f:
@@ -585,7 +587,7 @@ def run():
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
 
     if args.conc_execution:
-        run_conc_exec(proj, entry["experiments"], binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename)
+        run_conc_exec(proj, entry["experiments"], binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com)
     else:
         run_symb_exec(proj, entry_addr, exit_addrs, data_constraints, regs, extern_addr)
 

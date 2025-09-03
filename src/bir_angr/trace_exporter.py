@@ -82,6 +82,7 @@ class TraceExporter:
                  obs_json=None,
                  ctrace=None,
                  all_p = False,
+                 use_com = False,
                  bitwidth = 64
                  ):
 
@@ -100,6 +101,7 @@ class TraceExporter:
         self.obs_post_operand_id = obs_post_operand_id
         self._cache_ctrace = ctrace
         self.all_p = all_p
+        self.use_com = use_com
         self.bitwidth = bitwidth
         self.empty_registers = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
         self.empty_operands = [(0, self.bitwidth)] * 6
@@ -128,7 +130,7 @@ class TraceExporter:
         ops = self.save_obs_operands(state, self.obs_operand_id)
         self.traces_json[run_id]["states"][-1]["operands"].extend(ops)
 
-        if self.obs_post_operand_id is not None:
+        if self.use_com and self.obs_post_operand_id is not None:
             post_ops = self.save_obs_operands(state, self.obs_post_operand_id)
             self.traces_json[run_id]["states"][-1]["post_operands"].extend(post_ops)
 
@@ -224,14 +226,18 @@ class TraceExporter:
                         raise Exception(f"{iaddr_run1} does not macth with {self._cache_ctrace[i][1]}")
 
     def empty_state(self, sid, saddr):
-        return {"state_id": sid,
-                "instruction": "empty state",
-                "instr_address": saddr, # no matter, just for a check
-                "registers": self.empty_registers,
-                "memory": {},
-                "operands": self.empty_operands,
-                "post_operands": self.empty_post_operands
+        state = { "state_id": sid,
+                  "instruction": "empty state",
+                  "instr_address": saddr, # no matter, just for a check
+                  "registers": self.empty_registers,
+                  "memory": {},
+                  "operands": self.empty_operands
                 }
+
+        if self.use_com:
+            state["post_operands"] = self.empty_post_operands
+
+        return state
 
     def trim_trace(self, states):
         if self._cache_ctrace is not None:
@@ -350,7 +356,9 @@ class TraceExporter:
             text += self.mem_text(state["memory"], indentation)
             text += self.iaddr_text(state["instr_address"], indentation)
             text += self.obs_operands_text(state["operands"], indentation)
-            text += self.obs_post_operands_text(state["post_operands"], indentation)
+
+            if self.use_com:
+                text += self.obs_post_operands_text(state["post_operands"], indentation)
             #text += self.obs_text(state["observations"], indentation)
             text += "))\n"
             state_ids.append(state_id_txt)
