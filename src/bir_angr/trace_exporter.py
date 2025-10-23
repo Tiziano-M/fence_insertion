@@ -82,6 +82,7 @@ class TraceExporter:
                  obs_json=None,
                  ctrace=None,
                  all_p = False,
+                 enable_mem_trace = False,
                  use_com = False,
                  bitwidth = 64
                  ):
@@ -100,6 +101,7 @@ class TraceExporter:
         self.obs_operand_id = obs_operand_id
         self.obs_post_operand_id = obs_post_operand_id
         self._cache_ctrace = ctrace
+        self.enable_mem_trace = enable_mem_trace
         self.all_p = all_p
         self.use_com = use_com
         self.bitwidth = bitwidth
@@ -137,6 +139,23 @@ class TraceExporter:
         state.observations.list_obs.clear()
         return
 
+    def add_mem_to_trace(self, run_id, state):
+        mem_trace = self.traces_json[run_id]["states"][-1]["memory"]
+
+        for m in state.globals.get("mem_trace", []):
+            (addr, val, sz) = m["addr"], m["val"], m["sz"]
+
+            if addr.symbolic:
+                raise Exception(f"Mem addr not as expected: {addr}")
+            assert addr.size() == addr.args[1]
+            (addr_v, addr_sz) = addr.args
+
+            if val.symbolic:
+                raise Exception(f"Mem val not as expected: {val}")
+            assert val.size() == val.args[1]
+
+            mem_trace[addr_v] = {"addr_sz": addr_sz, "value": val.args, "size": sz}
+
     def save_regs(self, state):
         list_regs = []
         for reg in self.regs:
@@ -158,7 +177,6 @@ class TraceExporter:
 
     def save_mem(self, state):
         default_mem = {}
-        #default_mem = {0: {"value": [1, 64], "size": 64}, 80: {"value": [2, 64], "size": 64}}
         return default_mem
 
     def save_obs(self, run_id, state):
@@ -382,7 +400,7 @@ class TraceExporter:
         mem = f"{indentation}; Memory\n"
         mem += f"{indentation}  (vector-immutable\n"
         for (addr, val) in mem_json.items():
-            mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
+            mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['addr_sz']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
         return f"\t{mem}{indentation}   )\n\n"
 
     def iaddr_text(self, iaddr_json, indentation):

@@ -87,6 +87,11 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
     set_state_options(state)
     set_mem_and_regs(state, input_state_data)
 
+    if trace_exporter.enable_mem_trace:
+        state.globals["mem_trace"] = []
+        state.inspect.b('mem_read', when=angr.BP_BEFORE, action=save_mem_read_trace)
+        state.inspect.b('mem_write', when=angr.BP_BEFORE, action=save_mem_write_trace)
+
     state.inspect.b('reg_write', when=angr.BP_AFTER, action=observe)
     # is this needed?
     state.inspect.b('mem_read', when=angr.BP_AFTER, action=mem_read_after)
@@ -123,6 +128,9 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
                 raise Exception(f"Instruction not found: {hex(insn_addr)}")
 
             trace_exporter.add_operands_to_trace(input_state_id, current_state)
+
+        if trace_exporter.enable_mem_trace:
+            trace_exporter.add_mem_to_trace(input_state_id, current_state)
 
     if args.compare_obs:
         if len(simgr.active) == 0 and len(simgr.deadended) == 1:
@@ -248,6 +256,45 @@ def check_collision_with_concretization(mem_addr, track_concretization_values):
 
 def mem_write_before(state):
     check_collision_with_concretization(state.inspect.mem_write_address, state.concretizations.track_values)
+
+
+def is_obs_stmt(current_block, vex_stmts, current_stmt_num):
+    obs_reg_offset = current_block.arch.registers.get("obs", (None,))[0]
+    n = len(vex_stmts)
+
+    for i in range(current_stmt_num + 1, n):
+        next_stmt = vex_stmts[i]
+
+        if next_stmt.tag != "Ist_Put":
+            continue
+        if next_stmt.offset == obs_reg_offset:
+            return True
+        else:
+            break
+    return False
+
+
+def save_mem_read_trace(state):
+    #is_obs = is_obs_stmt(current_block, current_block.vex.statements, state.inspect.statement)
+    addr = state.inspect.mem_read_address
+    sz = state.inspect.mem_read_length
+    val = state.memory.load(addr, sz, endness=state.arch.memory_endness, disable_actions=True, inspect=False)
+
+    state.globals["mem_trace"].append({
+        "addr": addr,
+        "val": val,
+        "sz": sz
+    })
+def save_mem_write_trace(state):
+    addr = state.inspect.mem_write_address
+    sz = state.inspect.mem_write_length
+    val = state.memory.load(addr, sz, endness=state.arch.memory_endness, disable_actions=True, inspect=False)
+
+    state.globals["mem_trace"].append({
+        "addr": addr,
+        "val": val,
+        "sz": sz
+    })
 
 
 def mem_read_after_approx(state):
@@ -395,9 +442,12 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com):
+    enable_mem_trace = False
     insns = None
     if args.extract_traces:
         insns = disassemble_prog(binfile)
+    if args.extract_traces and (not args.compare_obs):
+        enable_mem_trace = True
     if args.extract_operands and (not args.extract_traces):
         raise Exception("trace exporter disabled, operands cannot be exported")
     if args.compare_obs_short and (not args.compare_obs):
@@ -431,6 +481,7 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
                               obs_operand_id=obs_operand_id,
                               obs_post_operand_id=obs_post_operand_id,
                               all_p = True,
+                              enable_mem_trace = enable_mem_trace,
                               use_com = use_com)
 
     for exp in exps:
