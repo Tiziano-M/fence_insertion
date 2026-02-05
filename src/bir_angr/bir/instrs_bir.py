@@ -113,7 +113,11 @@ class Instruction_BINEXP(BIR_Instruction):
     def get_operand2(self):
         val = self.map_expressions(self.block["exp2"], self.irsb_c)
         return val
-        
+
+    def make_safe_div(self, operand):
+        safe_div = self.ite(operand == 0, self.constant(1, operand.ty), operand)
+        return VexValue(self.irsb_c, safe_div)
+
     def compute_result(self):
         operator = self.get_operator()
         operand1 = self.get_operand1()
@@ -131,18 +135,28 @@ class Instruction_BINEXP(BIR_Instruction):
             val = operand1 - operand2
         elif operator == "BIExp_Mult":
             val = operand1 * operand2
+
+        # Note: trick to avoid division-by-zero exceptions (for ARM and RISC-V)
         elif operator == "BIExp_Div":
-            val = operand1 // operand2
+            # with exit
+            #self.jump(operand2 == 0, self.irsb_c.irsb.addr, "Ijk_SigFPE_IntDiv", self.irsb_c.irsb.offsIP)
+
+            safe_divisor = self.make_safe_div(operand2)
+            val = operand1 // safe_divisor
+
         elif operator == "BIExp_SignedDiv":
-            val = operand1.signed // operand2.signed
+            safe_divisor = self.make_safe_div(operand2)
+            val = operand1.signed // safe_divisor.signed
             # or also
             #val = self.irsb_c.op_sdiv(operand1.rdt, operand2.rdt)
             #val = VexValue(self.irsb_c, val)
         elif operator == "BIExp_Mod":
-            val = operand1 % operand2
+            safe_divisor = self.make_safe_div(operand2)
+            val = operand1 % safe_divisor
         elif operator == "BIExp_SignedMod":
+            safe_divisor = self.make_safe_div(operand2)
             # FIX: no way to handle signed mod
-            val = operand1.signed % operand2.signed
+            val = operand1.signed % safe_divisor.signed
         elif operator == "BIExp_LeftShift":
             if operand1.ty == Type.int_1 and operand2.ty == Type.int_1:
                 #val = operand1 & (operand2 == 0)
