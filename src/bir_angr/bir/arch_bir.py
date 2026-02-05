@@ -12,9 +12,11 @@ def regs_extraction_from_json(birprogjson):
                 reg = j["var"]
                 if reg["name"] != "MEM" and "*" not in reg["name"]:
                     regs.append(reg)
-            else:
-                for v in j.values():
+
+            for (k,v) in j.items():
+                if k != "var":
                     extracting(v)
+
         elif isinstance(j, list):
             for i in j:
                 extracting(i)
