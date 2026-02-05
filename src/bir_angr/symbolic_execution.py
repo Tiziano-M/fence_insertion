@@ -220,6 +220,7 @@ def set_state_options(state):
     state.options.add(angr.options.CACHELESS_SOLVER)
     #state.options.add(angr.options.DOWNSIZE_Z3)
     #state.options.add(angr.options.CONSTRAINT_TRACKING_IN_SOLVER)
+    #state.options.add(angr.options.PRODUCE_ZERODIV_SUCCESSORS) # symbolic-only
     #print(state.options.tally())
 
 
