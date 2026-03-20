@@ -2,16 +2,45 @@ import angr
 import json
 
 
-REGISTERS = [{"name": "ProcState_C", "type": "imm1"}, {"name": "ProcState_N", "type": "imm1"}, {"name": "ProcState_V", "type": "imm1"}, 
-             {"name": "ProcState_Z", "type": "imm1"}, {"name": "SP_EL0", "type": "imm64"}, {"name": "R0", "type": "imm64"}, {"name": "R1", "type": "imm64"}, 
-             {"name": "R2", "type": "imm64"}, {"name": "R3", "type": "imm64"}, {"name": "R4", "type": "imm64"}, {"name": "R5", "type": "imm64"}, 
-             {"name": "R6", "type": "imm64"}, {"name": "R7", "type": "imm64"}, {"name": "R8", "type": "imm64"}, {"name": "R9", "type": "imm64"}, 
-             {"name": "R10", "type": "imm64"}, {"name": "R11", "type": "imm64"}, {"name": "R12", "type": "imm64"}, {"name": "R13", "type": "imm64"}, 
-             {"name": "R14", "type": "imm64"}, {"name": "R15", "type": "imm64"}, {"name": "R16", "type": "imm64"}, {"name": "R17", "type": "imm64"}, 
-             {"name": "R18", "type": "imm64"}, {"name": "R19", "type": "imm64"}, {"name": "R20", "type": "imm64"}, {"name": "R21", "type": "imm64"}, 
-             {"name": "R22", "type": "imm64"}, {"name": "R23", "type": "imm64"}, {"name": "R24", "type": "imm64"}, {"name": "R25", "type": "imm64"}, 
-             {"name": "R26", "type": "imm64"}, {"name": "R27", "type": "imm64"}, {"name": "R28", "type": "imm64"}, {"name": "R29", "type": "imm64"}, 
-             {"name": "R30", "type": "imm64"}, {"name": "ip", "type": "imm64"}]
+REGISTERS = [
+        {"name": "ProcState_C", "type": "imm1"},
+        {"name": "ProcState_N", "type": "imm1"},
+        {"name": "ProcState_V", "type": "imm1"},
+        {"name": "ProcState_Z", "type": "imm1"},
+        {"name": "SP_EL0", "type": "imm64"},
+        {"name": "R0", "type": "imm64"},
+        {"name": "R1", "type": "imm64"},
+        {"name": "R2", "type": "imm64"},
+        {"name": "R3", "type": "imm64"},
+        {"name": "R4", "type": "imm64"},
+        {"name": "R5", "type": "imm64"},
+        {"name": "R6", "type": "imm64"},
+        {"name": "R7", "type": "imm64"},
+        {"name": "R8", "type": "imm64"},
+        {"name": "R9", "type": "imm64"},
+        {"name": "R10", "type": "imm64"},
+        {"name": "R11", "type": "imm64"},
+        {"name": "R12", "type": "imm64"},
+        {"name": "R13", "type": "imm64"},
+        {"name": "R14", "type": "imm64"},
+        {"name": "R15", "type": "imm64"},
+        {"name": "R16", "type": "imm64"},
+        {"name": "R17", "type": "imm64"},
+        {"name": "R18", "type": "imm64"},
+        {"name": "R19", "type": "imm64"},
+        {"name": "R20", "type": "imm64"},
+        {"name": "R21", "type": "imm64"},
+        {"name": "R22", "type": "imm64"},
+        {"name": "R23", "type": "imm64"},
+        {"name": "R24", "type": "imm64"},
+        {"name": "R25", "type": "imm64"},
+        {"name": "R26", "type": "imm64"},
+        {"name": "R27", "type": "imm64"},
+        {"name": "R28", "type": "imm64"},
+        {"name": "R29", "type": "imm64"},
+        {"name": "R30", "type": "imm64"},
+        {"name": "ip", "type": "imm64"}
+    ]
 REGISTER_TYPES = {
         "imm64": 64,
         "imm32": 32,
@@ -19,7 +48,13 @@ REGISTER_TYPES = {
         "imm8": 8,
         "imm1": 8
     }
-FLAG_REGS = {"ProcState_C", "ProcState_N", "ProcState_V", "ProcState_Z"}
+FLAG_REGS = {
+        "ProcState_C",
+        "ProcState_N",
+        "ProcState_V",
+        "ProcState_Z"
+    }
+
 
 # https://github.com/kth-step/EmbExp-Logs/blob/master/lib/experiment.py
 def _proc_input_state(inp, statename):
@@ -139,30 +174,34 @@ class TraceExporter:
 
     def save_regs(self, state):
         list_regs = []
+
         for reg in self.regs:
             reg_n = reg["name"]
             try:
                 val = getattr(state.regs, reg_n)
+
                 if val.symbolic:
                     raise Exception(f"Register value not as expected: {val}")
-                else:
-                    assert val.size() == val.args[1]
-                    reg_v = (val.args[0], val.args[1])
+
+                assert val.size() == val.args[1]
+                reg_v = (val.args[0], val.args[1])
                 list_regs.append((reg_n, reg_v))
+
             except Exception:
                 if self.all_regs:
                     list_regs.append((reg["name"], ((0, REGISTER_TYPES[reg["type"]]))))
                 else:
                     raise Exception(f"Register {reg_n} not found in the state")
+
         return list_regs
 
     def save_mem(self, state):
         default_mem = {}
-        #default_mem = {0: {"value": [1, 64], "size": 64}, 80: {"value": [2, 64], "size": 64}}
         return default_mem
 
     def save_obs(self, run_id, state):
         self.obs_json[run_id] = []
+
         for (obs_id,obs_cond,obs_list,_) in state.observations.list_obs:
             obsjson = {}
             obsjson["obs_id"] = obs_id
@@ -171,24 +210,27 @@ class TraceExporter:
             for obs in obs_list:
                 if obs.symbolic:
                     raise Exception(f"Observation value not as expected: {obs}")
-                else:
-                    assert obs.size() == obs.args[1]
-                    obs_v = (obs.args[0], obs.args[1])
+
+                assert obs.size() == obs.args[1]
+                obs_v = (obs.args[0], obs.args[1])
                 obsjson["obs_list"].append(obs_v)
+
             self.obs_json[run_id].append(obsjson)
         return self.obs_json[run_id]
 
     def save_obs_operands(self, state, obs_operand_id):
         list_obs = []
+
         for (obs_id,_,obs_list,_) in state.observations.list_obs:
             if obs_id == obs_operand_id:
                 for obs in obs_list:
                     if obs.symbolic:
                         raise Exception(f"Observation value not as expected: {obs}")
-                    else:
-                        assert obs.size() == obs.args[1]
-                        obs_v = (obs.args[0], obs.args[1])
+
+                    assert obs.size() == obs.args[1]
+                    obs_v = (obs.args[0], obs.args[1])
                     list_obs.append(obs_v)
+
         return list_obs
 
 
