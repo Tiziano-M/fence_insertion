@@ -124,6 +124,9 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
 
             trace_exporter.add_operands_to_trace(input_state_id, current_state)
 
+            if trace_exporter.enable_mem_trace:
+                trace_exporter.add_mem_history_to_trace(input_state_id, current_state)
+
     if args.compare_obs:
         if len(simgr.active) == 0 and len(simgr.deadended) == 1:
             trace_exporter.save_obs(input_state_id, simgr.deadended[0])
@@ -396,9 +399,12 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com):
+    enable_mem_trace = False
     insns = None
     if args.extract_traces:
         insns = disassemble_prog(binfile)
+    if args.extract_traces and (not args.compare_obs):
+        enable_mem_trace = True
     if args.extract_operands and (not args.extract_traces):
         raise Exception("trace exporter disabled, operands cannot be exported")
     if args.compare_obs_short and (not args.compare_obs):
@@ -432,6 +438,7 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
                               obs_operand_id=obs_operand_id,
                               obs_post_operand_id=obs_post_operand_id,
                               all_p = True,
+                              enable_mem_trace = enable_mem_trace,
                               use_com = use_com)
 
     for exp in exps:

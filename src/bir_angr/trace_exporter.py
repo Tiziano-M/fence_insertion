@@ -54,6 +54,11 @@ FLAG_REGS = {
         "ProcState_V",
         "ProcState_Z"
     }
+ADDRS = [
+        "ADDR_0",
+        "ADDR_1",
+        "ADDR_2"
+    ]
 
 
 # https://github.com/kth-step/EmbExp-Logs/blob/master/lib/experiment.py
@@ -117,6 +122,7 @@ class TraceExporter:
                  obs_json=None,
                  ctrace=None,
                  all_p = False,
+                 enable_mem_trace = False,
                  use_com = False,
                  bitwidth = 64
                  ):
@@ -136,11 +142,13 @@ class TraceExporter:
         self.obs_post_operand_id = obs_post_operand_id
         self._cache_ctrace = ctrace
         self.all_p = all_p
+        self.enable_mem_trace = enable_mem_trace
         self.use_com = use_com
         self.bitwidth = bitwidth
         self.empty_registers = [(reg["name"], (0, REGISTER_TYPES[reg["type"]])) for reg in REGISTERS]
         self.empty_operands = [(0, self.bitwidth)] * 6
         self.empty_post_operands = [(0, self.bitwidth)] * 2
+        self.empty_mem_history = [(addr, (0, self.bitwidth)) for addr in ADDRS]
 
     def init_trace(self, run_id):
         self.traces_json[run_id] = {"states" : []}
@@ -157,6 +165,7 @@ class TraceExporter:
         #dict_state["observations"] = self.save_obs(state)
         dict_state["operands"] = []
         dict_state["post_operands"] = []
+        dict_state["mem_history"] = []
 
         self.traces_json[run_id]["states"].append(dict_state)
         self.state_id += 1
@@ -171,6 +180,24 @@ class TraceExporter:
 
         state.observations.list_obs.clear()
         return
+
+    def add_mem_history_to_trace(self, run_id, state):
+        mem_history = []
+
+        for addr in ADDRS:
+            try:
+                val = getattr(state.regs, addr)
+            except AttributeError:
+                raise Exception(f"Register {addr} not found in the state")
+
+            if val.symbolic:
+                raise Exception(f"Address value not as expected: {val}")
+
+            assert val.size() == val.args[1]
+            addr_v = (val.args[0], val.args[1])
+            mem_history.append((addr, addr_v))
+
+        self.traces_json[run_id]["states"][-1]["mem_history"] = mem_history
 
     def save_regs(self, state):
         list_regs = []
@@ -278,6 +305,9 @@ class TraceExporter:
 
         if self.use_com:
             state["post_operands"] = self.empty_post_operands
+
+        if self.enable_mem_trace:
+            state["mem_history"] = self.empty_mem_history
 
         return state
 
@@ -401,6 +431,10 @@ class TraceExporter:
 
             if self.use_com:
                 text += self.obs_post_operands_text(state["post_operands"], indentation)
+
+            if self.enable_mem_trace:
+                text += self.obs_mem_history_text(state["mem_history"], indentation)
+
             #text += self.obs_text(state["observations"], indentation)
             text += "))\n"
             state_ids.append(state_id_txt)
@@ -463,4 +497,12 @@ class TraceExporter:
             assert sz == self.bitwidth
             opss += f"{indentation}   (POST-OPERAND (bv {val} (bitvector {self.bitwidth})))\n"
         return f"\t{opss}{indentation}   )\n"
+
+    def obs_mem_history_text(self, mem_history_json, indentation):
+        addrs = f"{indentation}; Memory-History\n"
+        addrs += f"{indentation}  (vector-immutable\n"
+        for (name, (val, sz)) in mem_history_json:
+            assert sz == self.bitwidth
+            addrs += f"{indentation}   (bv {val} (bitvector {self.bitwidth}))\t; {name}\n"
+        return f"\t{addrs}{indentation}   )\n\n"
 
