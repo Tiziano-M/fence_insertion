@@ -146,11 +146,12 @@ class TraceExporter:
         self.traces_json[run_id] = {"states" : []}
         self.state_id = 0
 
-    def save_trace(self, run_id, state, insn):
+    def save_trace(self, run_id, state, instr_data):
         dict_state = {}
         dict_state["state_id"] = self.state_id
-        dict_state["instruction"] = insn.render()[0]
-        dict_state["instr_address"] = insn.addr
+        dict_state["instruction"] = instr_data["asm"]
+        dict_state["instr_address"] = instr_data["address"]
+        dict_state["instr_type"] = instr_data["type"]
         dict_state["registers"] = self.save_regs(state)
         dict_state["memory"] = self.save_mem(state)
 
@@ -271,6 +272,7 @@ class TraceExporter:
         state = { "state_id": sid,
                   "instruction": "empty state",
                   "instr_address": saddr, # no matter, just for a check
+                  "instr_type": "null",
                   "registers": self.empty_registers,
                   "memory": {},
                   "operands": self.empty_operands
@@ -396,7 +398,7 @@ class TraceExporter:
             text += f"(define {state_id_txt} (make-run\t ; Registers\n"
             text += self.regs_text(state["registers"], indentation)
             text += self.mem_text(state["memory"], indentation)
-            text += self.iaddr_text(state["instr_address"], indentation)
+            text += self.inst_text(state["instr_address"], state["instr_type"], indentation)
             text += self.obs_operands_text(state["operands"], indentation)
 
             if self.use_com:
@@ -427,10 +429,10 @@ class TraceExporter:
             mem += f"{indentation}   (MEM (bv {addr} (bitvector {val['size']})) (bv {val['value'][0]} (bitvector {val['value'][1]})))\n"
         return f"\t{mem}{indentation}   )\n\n"
 
-    def iaddr_text(self, iaddr_json, indentation):
-        iaddr = f"{indentation}; Instruction Address\n"
-        iaddr += f"{indentation}  (bv {iaddr_json} (bitvector {self.bitwidth}))\n"
-        return f"\t{iaddr}\n"
+    def inst_text(self, iaddr_json, itype_json, indentation):
+        inst = f"{indentation}; Instruction Address and Type\n"
+        inst += f"{indentation}  (INST (bv {iaddr_json} (bitvector {self.bitwidth})) {itype_json.upper()})\n"
+        return f"\t{inst}\n"
 
     def obs_text(self, obs_json, indentation):
         obss = f"{indentation}; Obs\n"
