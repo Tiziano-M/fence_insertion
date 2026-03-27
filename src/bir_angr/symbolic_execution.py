@@ -404,6 +404,8 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
         raise Exception("trace exporter disabled, operands cannot be exported")
     if args.compare_obs_short and (not args.compare_obs):
         raise Exception("compare_obs must be enabled to use compare_obs_short")
+    if args.extract_traces and (instr_data is None):
+        raise Exception("instruction data not available")
 
     BASE_OBS_OPERAND_ID = "0"
     TARGET_OBS_OPERAND_ID = "2"

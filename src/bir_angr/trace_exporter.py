@@ -260,19 +260,22 @@ class TraceExporter:
             self._cache_ctrace = []
             for state in states_run0:
                 self._cache_ctrace.append(
-                  (state["state_id"], state["instr_address"]))
+                  (state["state_id"], state["instr_address"], state["instr_type"]))
 
             if do_check:
                 for (i, state) in enumerate(states_run1):
                     iaddr_run1 = state["instr_address"]
                     if iaddr_run1 != self._cache_ctrace[i][1]:
                         raise Exception(f"{iaddr_run1} does not macth with {self._cache_ctrace[i][1]}")
+                    itype_run1 = state["instr_type"]
+                    if itype_run1 != self._cache_ctrace[i][2]:
+                        raise Exception(f"{itype_run1} does not macth with {self._cache_ctrace[i][2]}")
 
-    def empty_state(self, sid, saddr):
+    def empty_state(self, sid, saddr, stype):
         state = { "state_id": sid,
                   "instruction": "empty state",
                   "instr_address": saddr, # no matter, just for a check
-                  "instr_type": "null",
+                  "instr_type": stype,
                   "registers": self.empty_registers,
                   "memory": {},
                   "operands": self.empty_operands
@@ -293,7 +296,8 @@ class TraceExporter:
                     trim_states.append(state)
                 else:
                     for n in range(i, len(self._cache_ctrace)):
-                        trim_states.append(self.empty_state(n, 0))
+                        raise Exception("this needs to be tested")
+                        trim_states.append(self.empty_state(n, state["instr_address"], state["instr_type"]))
                     return trim_states
             return None
         else:
@@ -304,20 +308,20 @@ class TraceExporter:
             raise Exception("No trace cached")
 
         if ((len(states) == len(self._cache_ctrace)) and
-           (all(s["instr_address"] == ca for (s,(_,ca)) in zip(states,self._cache_ctrace)))):
+           (all((s["instr_address"] == ca and s["instr_type"] == ct) for (s,(_,ca,ct)) in zip(states,self._cache_ctrace)))):
             return None
 
         aligned_states = []
         states_iter = iter(states)
         pstate = next(states_iter)
-        for (cstate_id, ciaddr) in self._cache_ctrace:
+        for (cstate_id, ciaddr, ctype) in self._cache_ctrace:
             if pstate is None:
-                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr, ctype))
                 continue
 
             piaddr = pstate["instr_address"]
             if piaddr > ciaddr:
-                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr, ctype))
                 continue
 
             try:
@@ -332,16 +336,18 @@ class TraceExporter:
                         aligned_states.append(pstate)
                         pstate = next(states_iter)
                     else:
-                        aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                        aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr, ctype))
                 except StopIteration:
                     pstate = None
             except StopIteration:
                 pstate = None
                 if cstate_id == len(self._cache_ctrace)-1:
-                    aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr))
+                    aligned_states.append(self.empty_state(f"{cstate_id}e", ciaddr, ctype))
 
         assert len(aligned_states) == len(self._cache_ctrace)
-        assert all(aligned_states[i]["instr_address"] == self._cache_ctrace[i][1] for i in range(len(self._cache_ctrace)))
+        assert all((aligned_states[i]["instr_address"] == self._cache_ctrace[i][1] and
+                    aligned_states[i]["instr_type"] == self._cache_ctrace[i][2])
+                        for i in range(len(self._cache_ctrace)))
         return aligned_states
 
 
