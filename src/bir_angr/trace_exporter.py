@@ -146,11 +146,13 @@ class TraceExporter:
         self.traces_json[run_id] = {"states" : []}
         self.state_id = 0
 
-    def save_trace(self, run_id, state, insn):
+    def save_trace(self, run_id, state, instr_data):
         dict_state = {}
         dict_state["state_id"] = self.state_id
-        dict_state["instruction"] = insn.render()[0]
-        dict_state["instr_address"] = insn.addr
+        dict_state["instruction"] = instr_data.get("asm")
+        dict_state["instr_address"] = instr_data.get("address")
+        dict_state["instr_type"] = instr_data.get("type")
+        dict_state["instr_disasm"] = instr_data.get("disasm")
         dict_state["registers"] = self.save_regs(state)
         dict_state["memory"] = self.save_mem(state)
 
@@ -271,6 +273,8 @@ class TraceExporter:
         state = { "state_id": sid,
                   "instruction": "empty state",
                   "instr_address": saddr, # no matter, just for a check
+                  "instr_type" : None,
+                  "instr_disasm" : None,
                   "registers": self.empty_registers,
                   "memory": {},
                   "operands": self.empty_operands
@@ -291,7 +295,7 @@ class TraceExporter:
                     trim_states.append(state)
                 else:
                     for n in range(i, len(self._cache_ctrace)):
-                        trim_states.append(self.empty_state(n, 0))
+                        trim_states.append(self.empty_state(n, state["instr_address"]))
                     return trim_states
             return None
         else:

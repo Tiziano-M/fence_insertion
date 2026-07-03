@@ -74,8 +74,9 @@ def set_mem_and_regs(state, input_data):
             raise Exception("Unknown input data", k)
 
 
-def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_exporter):
+def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, instr_data, trace_exporter):
     input_state_data, input_state_id = input_state
+
     if not hex(entry_addr).startswith("0x4"):
         raise Exception("Unexpected entry address: ", entry_addr)
     addr_start_hex = hex(entry_addr)[:3]
@@ -102,7 +103,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
             current_state = simgr.active[0]
 
             if hex(current_state.addr).startswith(addr_start_hex):
-                insn = next((i for i in insns if i.addr == current_state.addr), None)
+                insn = next((i for i in instr_data if i["address"] == current_state.addr), None)
                 if insn is None:
                     break
 
@@ -118,7 +119,7 @@ def conc_exec(proj, input_state, regs, entry_addr, exit_addrs, insns, trace_expo
             # Note: this code works since COPY_STATES is disabled and the same current state is always updated after stepping
             addr_history = current_state.history.bbl_addrs.hardcopy
             insn_addr = next((addr for addr in reversed(addr_history) if hex(addr).startswith(addr_start_hex)), None)
-            insn = next((i for i in insns if i.addr == insn_addr), None)
+            insn = next((i for i in instr_data if i["address"] == insn_addr), None)
             if insn is None:
                 raise Exception(f"Instruction not found: {hex(insn_addr)}")
 
@@ -395,14 +396,13 @@ def print_results(simgr_states, errored_states, assert_addr, fail_assert_states,
 
 
 
-def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com):
-    insns = None
-    if args.extract_traces:
-        insns = disassemble_prog(binfile)
+def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, instr_data, traces_filename, use_com):
     if args.extract_operands and (not args.extract_traces):
         raise Exception("trace exporter disabled, operands cannot be exported")
     if args.compare_obs_short and (not args.compare_obs):
         raise Exception("compare_obs must be enabled to use compare_obs_short")
+    if args.extract_traces and (instr_data is None):
+        raise Exception("instruction data not available")
 
     BASE_OBS_OPERAND_ID = "0"
     TARGET_OBS_OPERAND_ID = "2"
@@ -440,8 +440,8 @@ def run_conc_exec(proj, exps, binfile, entry_addr, exit_addrs, regs, obsrefmap, 
 
         texporter.obs_json = {}
         texporter.traces_json = {}
-        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, insns, texporter)
-        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, insns, texporter)
+        conc_exec(proj, (input1, 0), regs, entry_addr, exit_addrs, instr_data, texporter)
+        conc_exec(proj, (input2, 1), regs, entry_addr, exit_addrs, instr_data, texporter)
 
         if args.extract_traces:
             if False:
@@ -557,6 +557,7 @@ def run():
     exit_addrs = entry["exits"]
     regs = entry.get("registers", None)
     obsrefmap = entry.get("obsrefmap", None)
+    instr_data = entry.get("instr_data", None)
     traces_filename = entry.get("traces_filename", None)
     use_com = entry.get("use_com", False)
 
@@ -588,9 +589,27 @@ def run():
     bir_angr.bir.lift_bir.set_extern_val(extern_addr, shadow_addr, args.dump_irsb, birprogjson)
 
     if args.conc_execution:
-        run_conc_exec(proj, entry["experiments"], binfile, entry_addr, exit_addrs, regs, obsrefmap, traces_filename, use_com)
+        run_conc_exec(
+            proj,
+            entry["experiments"],
+            binfile,
+            entry_addr,
+            exit_addrs,
+            regs,
+            obsrefmap,
+            instr_data,
+            traces_filename,
+            use_com
+        )
     else:
-        run_symb_exec(proj, entry_addr, exit_addrs, data_constraints, regs, extern_addr)
+        run_symb_exec(
+            proj,
+            entry_addr,
+            exit_addrs,
+            data_constraints,
+            regs,
+            extern_addr
+        )
 
     return
 
